@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { t } from "@/messages/en";
+import { useTranslations } from "@/src/i18n/provider";
 
 type TimeWindowInput = { start: string; end: string };
 type Draft = {
@@ -44,6 +44,7 @@ export function RequestForm({
   mode?: "guest" | "account";
   onComplete?: () => void;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const deadlineInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Draft>(initialDraft);

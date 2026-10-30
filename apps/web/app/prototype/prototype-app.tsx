@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -27,9 +33,11 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { t } from "@/messages/en";
+import type { MessageKey } from "@/messages/en";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { RequestForm } from "@/app/request/request-form";
 import { authClient } from "@/src/lib/auth-client";
+import { useLanguage, useTranslations } from "@/src/i18n/provider";
 import styles from "./prototype.module.css";
 
 type Role = "learner" | "mentor";
@@ -44,7 +52,7 @@ type Screen =
   | "new-request";
 type SkillFilter = "all" | "Design" | "Data" | "Programming" | "Video";
 type Mentor = {
-  id: number;
+  id: 1 | 2 | 3 | 4;
   name: string;
   initials: string;
   study: string;
@@ -60,7 +68,7 @@ type Request = {
   id: number;
   title: string;
   detail: string;
-  state: "Team review" | "Time proposed" | "Confirmed" | "Completed";
+  state: "review" | "proposed" | "confirmed" | "completed";
   person: string;
   date: string;
 };
@@ -124,22 +132,70 @@ const mentors: Mentor[] = [
   },
 ];
 
-const initialRequests: Request[] = [
+const mentorCopyKeys: Record<
+  Mentor["id"],
+  {
+    study: MessageKey;
+    proof: MessageKey;
+    about: MessageKey;
+    availability: MessageKey;
+  }
+> = {
+  1: {
+    study: "prototypeSampleMentorOneStudy",
+    proof: "prototypeSampleMentorOneProof",
+    about: "prototypeSampleMentorOneAbout",
+    availability: "prototypeSampleMentorOneAvailability",
+  },
+  2: {
+    study: "prototypeSampleMentorTwoStudy",
+    proof: "prototypeSampleMentorTwoProof",
+    about: "prototypeSampleMentorTwoAbout",
+    availability: "prototypeSampleMentorTwoAvailability",
+  },
+  3: {
+    study: "prototypeSampleMentorThreeStudy",
+    proof: "prototypeSampleMentorThreeProof",
+    about: "prototypeSampleMentorThreeAbout",
+    availability: "prototypeSampleMentorThreeAvailability",
+  },
+  4: {
+    study: "prototypeSampleMentorFourStudy",
+    proof: "prototypeSampleMentorFourProof",
+    about: "prototypeSampleMentorFourAbout",
+    availability: "prototypeSampleMentorFourAvailability",
+  },
+};
+
+function localizeMentor(mentor: Mentor, t: ReturnType<typeof useTranslations>) {
+  const copy = mentorCopyKeys[mentor.id];
+  return {
+    ...mentor,
+    study: t(copy.study),
+    city:
+      mentor.city === "Almaty" ? t("prototypeAlmaty") : t("prototypeAstana"),
+    proof: t(copy.proof),
+    about: t(copy.about),
+    availability: t(copy.availability),
+  };
+}
+
+const initialRequests = (t: ReturnType<typeof useTranslations>): Request[] => [
   {
     id: 1,
-    title: "Build a pivot table that updates automatically",
+    title: t("prototypeTaskTitle"),
     detail: t("prototypeTaskCategory"),
-    state: "Time proposed",
+    state: "proposed",
     person: "Aigerim S.",
     date: t("prototypeTimeOptionOne"),
   },
   {
     id: 2,
-    title: "Understand why my Python chart is empty",
-    detail: "Programming · due 31 Oct",
-    state: "Team review",
-    person: "SkillSwap team",
-    date: "Waiting for review",
+    title: t("prototypeSessionHistoryTitle"),
+    detail: t("prototypeFilterCode"),
+    state: "review",
+    person: t("brand"),
+    date: t("prototypeStatusReview"),
   },
 ];
 
@@ -164,9 +220,12 @@ const iconForScreen = {
 >;
 
 export function PrototypeApp() {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: authSession } = authClient.useSession();
+  const { language } = useLanguage();
+  const isDemoMode = authSession === null;
   const requestedRole: Role =
     searchParams.get("role") === "mentor" ? "mentor" : "learner";
   const [roleSelection, setRoleSelection] = useState<Role | null>(null);
@@ -183,10 +242,20 @@ export function PrototypeApp() {
   const [filter, setFilter] = useState<SkillFilter>("all");
   const [search, setSearch] = useState("");
   const [selectedMentor, setSelectedMentor] = useState<Mentor>(mentors[0]);
-  const [requests, setRequests] = useState(initialRequests);
+  const selectedMentorCopy = localizeMentor(selectedMentor, t);
+  const [accountRequests, setAccountRequests] = useState<Request[]>([]);
+  const [accountRequestsOwner, setAccountRequestsOwner] = useState<
+    string | null
+  >(null);
+  const [demoRequestsOverride, setDemoRequestsOverride] = useState<
+    Request[] | null
+  >(null);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsLoadError, setRequestsLoadError] = useState(false);
-  const [requestDateRange, setRequestDateRange] = useState({ min: "", max: "" });
+  const [requestDateRange, setRequestDateRange] = useState({
+    min: "",
+    max: "",
+  });
   const [favoriteIds, setFavoriteIds] = useState<number[]>([2]);
   const [savedOnly, setSavedOnly] = useState(false);
   const [invitationStates, setInvitationStates] = useState<
@@ -196,32 +265,65 @@ export function PrototypeApp() {
   const [sessionTab, setSessionTab] = useState<"upcoming" | "past">("upcoming");
   const [task, setTask] = useState("");
   const [deadline, setDeadline] = useState("2026-10-28");
-  const [timeWindow, setTimeWindow] = useState<string>(t("prototypeTimeOptionOne"));
-  const [displayNameDraft, setDisplayNameDraft] = useState("");
-  const displayName =
-    displayNameDraft || authSession?.user.name || "Arsen Abduhalyk";
-  const [studyArea, setStudyArea] = useState("Business analytics · Year 3");
-  const [about, setAbout] = useState(
-    "Learning by building things with other students.",
+  const [timeWindow, setTimeWindow] = useState<string>(
+    t("prototypeTimeOptionOne"),
   );
+  const [displayNameDraft, setDisplayNameDraft] = useState<string | null>(null);
+  const displayName = isDemoMode
+    ? (displayNameDraft ?? t("prototypeDemoName"))
+    : (authSession?.user.name ?? "");
+  const [studyAreaDraft, setStudyAreaDraft] = useState<string | null>(null);
+  const studyArea = isDemoMode
+    ? (studyAreaDraft ?? t("prototypeDemoStudy"))
+    : "";
+  const [aboutDraft, setAboutDraft] = useState<string | null>(null);
+  const about = isDemoMode ? (aboutDraft ?? t("prototypeDemoAbout")) : "";
   const [editingProfile, setEditingProfile] = useState(false);
-  const [profileSnapshot, setProfileSnapshot] = useState<{ name: string; study: string; about: string; skills: string[] } | null>(null);
-  const accountDisplayName = editingProfile && profileSnapshot ? profileSnapshot.name : displayName;
+  const [profileSnapshot, setProfileSnapshot] = useState<{
+    name: string;
+    study: string;
+    about: string;
+    skills: string[];
+  } | null>(null);
+  const accountDisplayName =
+    isDemoMode && editingProfile && profileSnapshot
+      ? profileSnapshot.name
+      : displayName;
+  const accountInitials = authSession?.user
+    ? authSession.user.name
+        .split(/\s+/)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+    : isDemoMode
+      ? "AA"
+      : "";
   const [profileVisible, setProfileVisible] = useState(true);
   const [notifications, setNotifications] = useState(true);
-  const [mySkills, setMySkills] = useState([
-    "Excel basics",
-    "Presentation design",
-  ]);
+  const [mySkillsDraft, setMySkillsDraft] = useState<string[] | null>(null);
+  const mySkills = isDemoMode
+    ? (mySkillsDraft ?? [
+        t("prototypeDemoSkillOne"),
+        t("prototypeDemoSkillTwo"),
+      ])
+    : [];
   const [skillDraft, setSkillDraft] = useState("");
   const [addingSkill, setAddingSkill] = useState(false);
+  const demoRequests = useMemo(() => initialRequests(t), [t]);
+  const requests = isDemoMode
+    ? (demoRequestsOverride ?? demoRequests)
+    : authSession?.user.id === accountRequestsOwner
+      ? accountRequests
+      : [];
 
   const loadAccountRequests = useCallback(async () => {
     if (!authSession?.user || role !== "learner") return;
     setRequestsLoading(true);
     setRequestsLoadError(false);
     try {
-      const response = await fetch("/api/account/requests", { cache: "no-store" });
+      const response = await fetch("/api/account/requests", {
+        cache: "no-store",
+      });
       if (!response.ok) throw new Error("requests_unavailable");
       const data = (await response.json()) as {
         requests: Array<{
@@ -233,20 +335,35 @@ export function PrototypeApp() {
           createdAt: string;
         }>;
       };
-      setRequests(data.requests.map((request, index) => ({
-        id: index + 1,
-        title: request.taskDescription,
-        detail: `${request.taskCategory ?? t("prototypeTaskCategory")} · ${new Date(request.deadlineAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Almaty" })}`,
-        state: request.status === "slot_proposed" ? "Time proposed" : "Team review",
-        person: "SkillSwap team",
-        date: new Date(request.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Almaty" }),
-      })));
+      const locale = { en: "en-GB", ru: "ru-RU", kk: "kk-KZ" }[language];
+      setAccountRequests(
+        data.requests.map((request, index) => ({
+          id: index + 1,
+          title: request.taskDescription,
+          detail: `${request.taskCategory === "creative" ? t("requestAreaCreative") : t("requestAreaStem")} · ${new Date(request.deadlineAt).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "Asia/Almaty" })}`,
+          state:
+            request.status === "slot_proposed"
+              ? "proposed"
+              : request.status === "confirmed"
+                ? "confirmed"
+                : request.status === "completed"
+                  ? "completed"
+                  : "review",
+          person: t("brand"),
+          date: new Date(request.createdAt).toLocaleDateString(locale, {
+            day: "numeric",
+            month: "short",
+            timeZone: "Asia/Almaty",
+          }),
+        })),
+      );
+      setAccountRequestsOwner(authSession.user.id);
     } catch {
       setRequestsLoadError(true);
     } finally {
       setRequestsLoading(false);
     }
-  }, [authSession?.user, role]);
+  }, [authSession, language, role, t]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadAccountRequests(), 0);
@@ -255,9 +372,14 @@ export function PrototypeApp() {
 
   const almatyDate = (date: Date) => {
     const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Almaty", year: "numeric", month: "2-digit", day: "2-digit",
+      timeZone: "Asia/Almaty",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     }).formatToParts(date);
-    const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const value = Object.fromEntries(
+      parts.map((part) => [part.type, part.value]),
+    );
     return `${value.year}-${value.month}-${value.day}`;
   };
   useEffect(() => {
@@ -295,15 +417,21 @@ export function PrototypeApp() {
 
   const visibleMentors = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return mentors.filter((mentor) => {
+    return (isDemoMode ? mentors : []).filter((mentor) => {
       const matchesFilter = filter === "all" || mentor.category === filter;
-      const text = [mentor.name, mentor.study, mentor.city, ...mentor.skills]
+      const localizedMentor = localizeMentor(mentor, t);
+      const text = [
+        mentor.name,
+        localizedMentor.study,
+        localizedMentor.city,
+        ...mentor.skills,
+      ]
         .join(" ")
         .toLowerCase();
       const matchesSaved = !savedOnly || favoriteIds.includes(mentor.id);
       return matchesFilter && matchesSaved && (!query || text.includes(query));
     });
-  }, [favoriteIds, filter, savedOnly, search]);
+  }, [favoriteIds, filter, isDemoMode, savedOnly, search, t]);
 
   const notify = (message: string) => {
     setToast(message);
@@ -313,9 +441,9 @@ export function PrototypeApp() {
   const cancelProfileEdit = () => {
     if (profileSnapshot) {
       setDisplayNameDraft(profileSnapshot.name);
-      setStudyArea(profileSnapshot.study);
-      setAbout(profileSnapshot.about);
-      setMySkills([...profileSnapshot.skills]);
+      setStudyAreaDraft(profileSnapshot.study);
+      setAboutDraft(profileSnapshot.about);
+      setMySkillsDraft([...profileSnapshot.skills]);
     }
     setEditingProfile(false);
     setAddingSkill(false);
@@ -339,16 +467,16 @@ export function PrototypeApp() {
     event.preventDefault();
     const cleanTask = task.trim();
     if (!cleanTask) return;
-    setRequests((current) => [
+    setDemoRequestsOverride((current) => [
       {
         id: Date.now(),
         title: cleanTask,
         detail: `Preferred mentor: ${selectedMentor.name} · due ${new Date(`${deadline}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-        state: "Team review",
+        state: "review",
         person: "SkillSwap team",
         date: timeWindow,
       },
-      ...current,
+      ...(current ?? demoRequests),
     ]);
     setTask("");
     setScreen("requests");
@@ -380,7 +508,7 @@ export function PrototypeApp() {
   const saveSkill = () => {
     const cleanSkill = skillDraft.trim();
     if (!cleanSkill) return;
-    setMySkills((current) => [...current, cleanSkill]);
+    setMySkillsDraft((current) => [...(current ?? mySkills), cleanSkill]);
     setSkillDraft("");
     setAddingSkill(false);
   };
@@ -480,10 +608,10 @@ export function PrototypeApp() {
               >
                 <Icon size={19} strokeWidth={1.9} />{" "}
                 <span className={styles.navLabel}>{item.label}</span>
-                {item.id === "requests" && role === "mentor" && (
+                {isDemoMode && item.id === "requests" && role === "mentor" && (
                   <span className={styles.navCount}>2</span>
                 )}
-                {item.id === "sessions" && role === "learner" && (
+                {isDemoMode && item.id === "sessions" && role === "learner" && (
                   <span className={styles.navDot} />
                 )}
               </button>
@@ -495,7 +623,9 @@ export function PrototypeApp() {
             className={styles.accountButton}
             onClick={() => openScreen("profile")}
           >
-            <span className={`${styles.avatar} ${styles.avatarBlue}`}>AA</span>
+            <span className={`${styles.avatar} ${styles.avatarBlue}`}>
+              {accountInitials}
+            </span>
             <span className={styles.accountText}>
               <strong>{accountDisplayName}</strong>
               <small>
@@ -556,19 +686,24 @@ export function PrototypeApp() {
               onClick={() => notify(t("prototypeCaughtUpToast"))}
             >
               <Bell size={19} />
-
             </button>
+            <LanguageSwitcher />
             <button
               className={styles.topAvatar}
               onClick={() => openScreen("profile")}
               aria-label={t("prototypeNavProfile")}
             >
-              AA
+              {accountInitials}
             </button>
           </div>
         </header>
 
         <div className={styles.contentWrap}>
+          {isDemoMode && (
+            <p className={styles.previewNotice} role="note">
+              {t("prototypePreviewNotice")}
+            </p>
+          )}
           {screen === "home" && role === "learner" && (
             <>
               <section className={styles.welcomeBlock}>
@@ -594,11 +729,11 @@ export function PrototypeApp() {
                         ? t("workspaceCurrentRequest")
                         : t("workspaceNoRequest")}
                     </h2>
-                    <span>{t("workspaceDemoSample")}</span>
+                    {isDemoMode && <span>{t("workspaceDemoSample")}</span>}
                   </div>
                   {requests[0] && (
                     <span className={styles.focusStatus}>
-                      {requests[0].state === "Time proposed"
+                      {requests[0].state === "proposed"
                         ? t("workspaceRequestTime")
                         : t("workspaceRequestWaiting")}
                     </span>
@@ -610,7 +745,6 @@ export function PrototypeApp() {
                     <p className={styles.focusDetail}>{requests[0].detail}</p>
                     <div className={styles.focusFooter}>
                       <p>{t("workspaceRequestNext")}</p>
-      
                     </div>
                   </>
                 ) : (
@@ -627,6 +761,38 @@ export function PrototypeApp() {
                   </>
                 )}
               </section>
+              <section
+                className={styles.homeHow}
+                aria-labelledby="home-how-title"
+              >
+                <h2 id="home-how-title">{t("onboardingHowTitle")}</h2>
+                <ol>
+                  <li>
+                    <strong>{t("workspaceStepOneTitle")}</strong>
+                    <p>{t("workspaceStepOneText")}</p>
+                  </li>
+                  <li>
+                    <strong>{t("workspaceStepTwoTitle")}</strong>
+                    <p>{t("workspaceStepTwoText")}</p>
+                  </li>
+                  <li>
+                    <strong>{t("workspaceStepThreeTitle")}</strong>
+                    <p>{t("workspaceStepThreeText")}</p>
+                  </li>
+                </ol>
+              </section>
+              <section className={styles.firstRequest}>
+                <div>
+                  <h2>{t("workspaceFirstRequestTitle")}</h2>
+                  <p>{t("workspaceFirstRequestText")}</p>
+                </div>
+                <button
+                  className={styles.secondaryButton}
+                  onClick={() => openScreen("new-request")}
+                >
+                  {t("workspaceFirstRequestAction")} <ArrowRight size={16} />
+                </button>
+              </section>
             </>
           )}
 
@@ -637,7 +803,6 @@ export function PrototypeApp() {
                   <h1>{t("workspaceMentorHomeTitle")}</h1>
                   <p>{t("workspaceMentorHomeText")}</p>
                 </div>
-
               </section>
               <section className={styles.inboxSection}>
                 <div className={styles.sectionHead}>
@@ -651,19 +816,28 @@ export function PrototypeApp() {
                     {t("prototypeSeeAll")} <ArrowRight size={15} />
                   </button>
                 </div>
-                <InvitationCard
-                  status={invitationStates[1]}
-                  onAccept={() => setInvitationStatus(1, "accepted")}
-                  onDecline={() => setInvitationStatus(1, "declined")}
-                  onUndo={() => setInvitationStatus(1, "pending")}
-                  onOpen={() => openScreen("requests")}
-                />
-                <button
-                  className={styles.textButton}
-                  onClick={() => openScreen("requests")}
-                >
-                  {t("workspaceMoreRequests")} <ArrowRight size={15} />
-                </button>
+                {isDemoMode ? (
+                  <>
+                    <InvitationCard
+                      status={invitationStates[1] ?? "pending"}
+                      onAccept={() => setInvitationStatus(1, "accepted")}
+                      onDecline={() => setInvitationStatus(1, "declined")}
+                      onUndo={() => setInvitationStatus(1, "pending")}
+                      onOpen={() => openScreen("requests")}
+                    />
+                    <button
+                      className={styles.textButton}
+                      onClick={() => openScreen("requests")}
+                    >
+                      {t("workspaceMoreRequests")} <ArrowRight size={15} />
+                    </button>
+                  </>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <h2>{t("prototypeNoInvitations")}</h2>
+                    <p>{t("prototypeNoInvitationsText")}</p>
+                  </div>
+                )}
               </section>
             </>
           )}
@@ -674,79 +848,102 @@ export function PrototypeApp() {
                 <div>
                   <h1>{t("prototypeSearchTitle")}</h1>
                 </div>
-
               </div>
-              <div className={styles.searchBar}>
-                <Search size={19} />
-                <input
-                  aria-label={t("prototypeSearchPlaceholder")}
-                  placeholder={t("prototypeSearchPlaceholder")}
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-                <button
-                  onClick={() => setSearch("")}
-                  aria-label={t("prototypeClearSearchAction")}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className={styles.exploreToolbar}>
-                <div
-                  className={styles.filterList}
-                  role="group"
-                  aria-label={t("prototypeFilterBySkill")}
-                >
-                  {skillFilters.map((item) => (
+              {isDemoMode ? (
+                <>
+                  <div className={styles.searchBar}>
+                    <Search size={19} />
+                    <input
+                      aria-label={t("prototypeSearchPlaceholder")}
+                      placeholder={t("prototypeSearchPlaceholder")}
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                    />
                     <button
-                      key={item}
-                      className={filter === item ? styles.filterActive : ""}
-                      onClick={() => setFilter(item)}
+                      onClick={() => setSearch("")}
+                      aria-label={t("prototypeClearSearchAction")}
                     >
-                      {item === "all" ? t("prototypeFilterAll") : item}
+                      <X size={16} />
                     </button>
-                  ))}
-                </div>
-                <button
-                  className={`${styles.filterButton} ${savedOnly ? styles.savedFilterActive : ""}`}
-                  aria-pressed={savedOnly}
-                  onClick={() => setSavedOnly((value) => !value)}
-                >
-                  <span>
-                    <Heart size={16} /> {t("prototypeSaved")}
-                  </span>
-                  <span>{favoriteIds.length}</span>
-                </button>
-              </div>
-              <div className={styles.resultCaption}>
-                {visibleMentors.length} {t("prototypeSampleProfileCount")}{" "}
-                <span>·</span> {t("prototypeOnlyReviewedSkills")}
-              </div>
-              <div className={styles.mentorList}>
-                {visibleMentors.map((mentor) => (
-                  <MentorRow
-                    key={mentor.id}
-                    mentor={mentor}
-                    favorite={favoriteIds.includes(mentor.id)}
-                    onFavorite={() => toggleFavorite(mentor.id)}
-                    onOpen={() => openMentor(mentor)}
-                  />
-                ))}
-              </div>
-              {visibleMentors.length === 0 && (
+                  </div>
+                  <div className={styles.exploreToolbar}>
+                    <div
+                      className={styles.filterList}
+                      role="group"
+                      aria-label={t("prototypeFilterBySkill")}
+                    >
+                      {skillFilters.map((item) => (
+                        <button
+                          key={item}
+                          className={filter === item ? styles.filterActive : ""}
+                          onClick={() => setFilter(item)}
+                        >
+                          {item === "all"
+                            ? t("prototypeFilterAll")
+                            : item === "Design"
+                              ? t("prototypeFilterDesign")
+                              : item === "Data"
+                                ? t("prototypeFilterData")
+                                : item === "Programming"
+                                  ? t("prototypeFilterCode")
+                                  : t("prototypeFilterVideo")}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      className={`${styles.filterButton} ${savedOnly ? styles.savedFilterActive : ""}`}
+                      aria-pressed={savedOnly}
+                      onClick={() => setSavedOnly((value) => !value)}
+                    >
+                      <span>
+                        <Heart size={16} /> {t("prototypeSaved")}
+                      </span>
+                      <span>{favoriteIds.length}</span>
+                    </button>
+                  </div>
+                  <div className={styles.resultCaption}>
+                    {visibleMentors.length} {t("prototypeSampleProfileCount")}{" "}
+                    <span>·</span> {t("prototypeOnlyReviewedSkills")}
+                  </div>
+                  <div className={styles.mentorList}>
+                    {visibleMentors.map((mentor) => (
+                      <MentorRow
+                        key={mentor.id}
+                        mentor={mentor}
+                        favorite={favoriteIds.includes(mentor.id)}
+                        onFavorite={() => toggleFavorite(mentor.id)}
+                        onOpen={() => openMentor(mentor)}
+                      />
+                    ))}
+                  </div>
+                  {visibleMentors.length === 0 && (
+                    <div className={styles.emptyState}>
+                      <Search size={23} />
+                      <h2>{t("prototypeEmptyMentorSearch")}</h2>
+                      <p>{t("prototypeEmptyMentorSearchHint")}</p>
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={() => {
+                          setSearch("");
+                          setFilter("all");
+                          setSavedOnly(false);
+                        }}
+                      >
+                        {t("prototypeClearFilters")}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
                 <div className={styles.emptyState}>
                   <Search size={23} />
-                  <h2>{t("prototypeEmptyMentorSearch")}</h2>
-                  <p>{t("prototypeEmptyMentorSearchHint")}</p>
+                  <h2>{t("prototypeNoMentorsYet")}</h2>
+                  <p>{t("prototypeNoMentorsYetText")}</p>
                   <button
-                    className={styles.secondaryButton}
-                    onClick={() => {
-                      setSearch("");
-                      setFilter("all");
-                      setSavedOnly(false);
-                    }}
+                    className={styles.primaryButton}
+                    onClick={() => openScreen("new-request")}
                   >
-                    {t("prototypeClearFilters")}
+                    {t("prototypeDescribeTask")} <ArrowRight size={16} />
                   </button>
                 </div>
               )}
@@ -768,10 +965,9 @@ export function PrototypeApp() {
                   {selectedMentor.initials}
                 </span>
                 <div className={styles.personIdentity}>
-
                   <h1>{selectedMentor.name}</h1>
                   <p>
-                    {selectedMentor.study} · {selectedMentor.city}
+                    {selectedMentorCopy.study} · {selectedMentorCopy.city}
                   </p>
                   <MentorSkills skills={selectedMentor.skills} />
                 </div>
@@ -785,12 +981,11 @@ export function PrototypeApp() {
               <div className={styles.personContent}>
                 <section className={styles.personAbout}>
                   <h2>{t("prototypeProfileTitle")}</h2>
-                  <p>{selectedMentor.about}</p>
+                  <p>{selectedMentorCopy.about}</p>
                   <h3>{t("prototypeSkillEvidence")}</h3>
                   <div className={styles.evidenceRow}>
-
                     <div>
-                      <strong>{selectedMentor.proof}</strong>
+                      <strong>{selectedMentorCopy.proof}</strong>
                     </div>
                   </div>
                 </section>
@@ -817,9 +1012,16 @@ export function PrototypeApp() {
             <section className={styles.formScreen}>
               <button
                 className={styles.backLink}
-                onClick={() => authSession?.user ? openScreen("requests") : openMentor(selectedMentor)}
+                onClick={() =>
+                  authSession?.user
+                    ? openScreen("requests")
+                    : openMentor(selectedMentor)
+                }
               >
-                <ArrowLeft size={16} /> {authSession?.user ? t("prototypeRequestsTitle") : selectedMentor.name}
+                <ArrowLeft size={16} />{" "}
+                {authSession?.user
+                  ? t("prototypeRequestsTitle")
+                  : selectedMentor.name}
               </button>
               <div className={styles.screenHeading}>
                 <div>
@@ -837,68 +1039,69 @@ export function PrototypeApp() {
                     notify(t("prototypeRequestSentForReview"));
                   }}
                 />
-              ) : <form className={styles.requestForm} onSubmit={submitRequest}>
-                <div className={styles.formMentor}>
-                  <span
-                    className={`${styles.avatar} ${styles[`avatar${capitalize(selectedMentor.color)}`]}`}
-                  >
-                    {selectedMentor.initials}
-                  </span>
-                  <div>
-                    <small>{t("prototypeUncontactedPreference")}</small>
-                    <strong>{selectedMentor.name}</strong>
+              ) : (
+                <form className={styles.requestForm} onSubmit={submitRequest}>
+                  <div className={styles.formMentor}>
+                    <span
+                      className={`${styles.avatar} ${styles[`avatar${capitalize(selectedMentor.color)}`]}`}
+                    >
+                      {selectedMentor.initials}
+                    </span>
+                    <div>
+                      <small>{t("prototypeUncontactedPreference")}</small>
+                      <strong>{selectedMentor.name}</strong>
+                    </div>
                   </div>
-
-                </div>
-                <label className={styles.fieldLabel}>
-                  {t("prototypeTaskLabel")}
-                  <textarea
-                    value={task}
-                    onChange={(event) => setTask(event.target.value)}
-                    placeholder={t("prototypeTaskPlaceholder")}
-                    required
-                    rows={4}
-                  />
-                </label>
-                <div className={styles.formTwoCol}>
                   <label className={styles.fieldLabel}>
-                    {t("prototypeDeadlineLabel")}
-                    <input
-                      type="date"
-                      value={deadline}
-                      onChange={(event) => setDeadline(event.target.value)}
+                    {t("prototypeTaskLabel")}
+                    <textarea
+                      value={task}
+                      onChange={(event) => setTask(event.target.value)}
+                      placeholder={t("prototypeTaskPlaceholder")}
                       required
+                      rows={4}
                     />
                   </label>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeTimeLabel")}
-                    <select
-                      value={timeWindow}
-                      onChange={(event) => setTimeWindow(event.target.value)}
+                  <div className={styles.formTwoCol}>
+                    <label className={styles.fieldLabel}>
+                      {t("prototypeDeadlineLabel")}
+                      <input
+                        type="date"
+                        value={deadline}
+                        onChange={(event) => setDeadline(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className={styles.fieldLabel}>
+                      {t("prototypeTimeLabel")}
+                      <select
+                        value={timeWindow}
+                        onChange={(event) => setTimeWindow(event.target.value)}
+                      >
+                        <option>{t("prototypeTimeOptionOne")}</option>
+                        <option>{t("prototypeTimeOptionTwo")}</option>
+                        <option>{t("prototypeTimeOptionThree")}</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className={styles.formNotice}>
+                    <ShieldCheck size={18} />
+                    <p>{t("prototypeMentorRequestMeaning")}</p>
+                  </div>
+                  <div className={styles.formActions}>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={() => openMentor(selectedMentor)}
                     >
-                      <option>{t("prototypeTimeOptionOne")}</option>
-                      <option>{t("prototypeTimeOptionTwo")}</option>
-                      <option>{t("prototypeTimeOptionThree")}</option>
-                    </select>
-                  </label>
-                </div>
-                <div className={styles.formNotice}>
-                  <ShieldCheck size={18} />
-                  <p>{t("prototypeMentorRequestMeaning")}</p>
-                </div>
-                <div className={styles.formActions}>
-                  <button
-                    className={styles.secondaryButton}
-                    type="button"
-                    onClick={() => openMentor(selectedMentor)}
-                  >
-                    {t("prototypeCancel")}
-                  </button>
-                  <button className={styles.primaryButton} type="submit">
-                    {t("prototypeSubmitRequest")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              </form>}
+                      {t("prototypeCancel")}
+                    </button>
+                    <button className={styles.primaryButton} type="submit">
+                      {t("prototypeSubmitRequest")} <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </form>
+              )}
             </section>
           )}
 
@@ -908,33 +1111,56 @@ export function PrototypeApp() {
                 <div>
                   <h1>{t("prototypeRequestsTitle")}</h1>
                 </div>
-                <button
-                  className={styles.primaryButton}
-                  onClick={() => openScreen("new-request")}
-                >
-                  {t("prototypeSubmitRequest")} <ArrowRight size={17} />
-                </button>
+                {requests.length > 0 && (
+                  <button
+                    className={styles.primaryButton}
+                    onClick={() => openScreen("new-request")}
+                  >
+                    {t("prototypeSubmitRequest")} <ArrowRight size={17} />
+                  </button>
+                )}
               </div>
-              {authSession?.user && requestsLoading ? <p role="status">{t("prototypeRequestsLoading")}</p> : null}
+              {authSession?.user && requestsLoading ? (
+                <p role="status">{t("prototypeRequestsLoading")}</p>
+              ) : null}
               {authSession?.user && requestsLoadError ? (
                 <div role="alert" className={styles.formNotice}>
                   <p>{t("prototypeRequestsLoadError")}</p>
-                  <button className={styles.textButton} onClick={() => void loadAccountRequests()}>{t("prototypeRetry")}</button>
+                  <button
+                    className={styles.textButton}
+                    onClick={() => void loadAccountRequests()}
+                  >
+                    {t("prototypeRetry")}
+                  </button>
                 </div>
               ) : null}
-              {!requestsLoading && !requestsLoadError && requests.length === 0 ? (
-                <p>{t("prototypeNoRequests")}</p>
+              {!requestsLoading &&
+              !requestsLoadError &&
+              requests.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <h2>{t("prototypeNoRequestsTitle")}</h2>
+                  <p>{t("prototypeNoRequestsText")}</p>
+                  <button
+                    className={styles.primaryButton}
+                    onClick={() => openScreen("new-request")}
+                  >
+                    {t("prototypeDescribeTask")} <ArrowRight size={16} />
+                  </button>
+                </div>
               ) : null}
               <div className={styles.requestList}>
                 {requests.map((request) => (
                   <RequestDetail
                     key={request.id}
                     request={request}
-                    onOpen={() => notify(`${request.state} · ${request.date}`)}
+                    onOpen={() =>
+                      notify(
+                        `${requestStateLabel(request.state, t)} · ${request.date}`,
+                      )
+                    }
                   />
                 ))}
               </div>
-
             </section>
           )}
 
@@ -944,25 +1170,31 @@ export function PrototypeApp() {
                 <div>
                   <h1>{t("prototypeInvitations")}</h1>
                 </div>
-
               </div>
-              <div className={styles.invitationStack}>
-                <InvitationCard
-                  status={invitationStates[1]}
-                  onAccept={() => setInvitationStatus(1, "accepted")}
-                  onDecline={() => setInvitationStatus(1, "declined")}
-                  onUndo={() => setInvitationStatus(1, "pending")}
-                  onOpen={() => notify(t("prototypeInvitationTask"))}
-                />
-                <InvitationCard
-                  compact
-                  status={invitationStates[2]}
-                  onAccept={() => setInvitationStatus(2, "accepted")}
-                  onDecline={() => setInvitationStatus(2, "declined")}
-                  onUndo={() => setInvitationStatus(2, "pending")}
-                  onOpen={() => notify(t("prototypeSecondInvitation"))}
-                />
-              </div>
+              {isDemoMode ? (
+                <div className={styles.invitationStack}>
+                  <InvitationCard
+                    status={invitationStates[1] ?? "pending"}
+                    onAccept={() => setInvitationStatus(1, "accepted")}
+                    onDecline={() => setInvitationStatus(1, "declined")}
+                    onUndo={() => setInvitationStatus(1, "pending")}
+                    onOpen={() => notify(t("prototypeInvitationTask"))}
+                  />
+                  <InvitationCard
+                    compact
+                    status={invitationStates[2] ?? "pending"}
+                    onAccept={() => setInvitationStatus(2, "accepted")}
+                    onDecline={() => setInvitationStatus(2, "declined")}
+                    onUndo={() => setInvitationStatus(2, "pending")}
+                    onOpen={() => notify(t("prototypeSecondInvitation"))}
+                  />
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  <h2>{t("prototypeNoInvitations")}</h2>
+                  <p>{t("prototypeNoSessionsText")}</p>
+                </div>
+              )}
             </section>
           )}
 
@@ -973,84 +1205,103 @@ export function PrototypeApp() {
                   <h1>{t("prototypeSessionsTitle")}</h1>
                 </div>
               </div>
-              <div className={styles.sessionTabs}>
-                <button
-                  className={
-                    sessionTab === "upcoming" ? styles.sessionTabActive : ""
-                  }
-                  onClick={() => setSessionTab("upcoming")}
-                >
-                  {t("prototypeUpcomingTab")} <span>1</span>
-                </button>
-                <button
-                  className={
-                    sessionTab === "past" ? styles.sessionTabActive : ""
-                  }
-                  onClick={() => setSessionTab("past")}
-                >
-                  {t("prototypePastTab")} <span>2</span>
-                </button>
-              </div>
-              {sessionTab === "upcoming" ? (
-                <div className={styles.sessionDetailCard}>
-                  <div className={styles.sessionCalendar}>
-                    <strong>24</strong>
-                    <span>OCT</span>
-                  </div>
-                  <div className={styles.sessionDetailMain}>
-                    <span className={styles.confirmedPill}>
-                      <CheckCircle2 size={14} />{" "}
-                      {t("prototypeStatusConfirmedDemo")}
-                    </span>
-                    <h2>{t("prototypeSessionTitle")}</h2>
-                    <p>{t("prototypeSessionMeta")}</p>
-                    <div className={styles.sessionMeta}>
-                      <span>
-                        <CalendarDays size={15} /> {t("prototypeSessionDate")}
-                      </span>
-                      <span>
-                        <Clock3 size={15} /> {t("prototypeSessionDuration")}
-                      </span>
-                    </div>
-                    <div className={styles.sessionPlan}>
-                      <strong>{t("prototypeSessionDetails")}</strong>
-                      <p>{t("prototypeSessionPlan")}</p>
-                    </div>
+              {isDemoMode ? (
+                <>
+                  <div className={styles.sessionTabs}>
                     <button
-                      className={styles.primaryButton}
-                      onClick={() => notify(t("prototypeDemoMeetingToast"))}
+                      className={
+                        sessionTab === "upcoming" ? styles.sessionTabActive : ""
+                      }
+                      onClick={() => setSessionTab("upcoming")}
                     >
-                      <Video size={17} /> {t("prototypeJoinSession")}
+                      {t("prototypeUpcomingTab")} <span>1</span>
+                    </button>
+                    <button
+                      className={
+                        sessionTab === "past" ? styles.sessionTabActive : ""
+                      }
+                      onClick={() => setSessionTab("past")}
+                    >
+                      {t("prototypePastTab")} <span>2</span>
                     </button>
                   </div>
-
-                </div>
+                  {sessionTab === "upcoming" ? (
+                    <div className={styles.sessionDetailCard}>
+                      <div className={styles.sessionCalendar}>
+                        <strong>24</strong>
+                        <span>{t("prototypeOctoberShort")}</span>
+                      </div>
+                      <div className={styles.sessionDetailMain}>
+                        <span className={styles.confirmedPill}>
+                          <CheckCircle2 size={14} />{" "}
+                          {t("prototypeStatusConfirmedDemo")}
+                        </span>
+                        <h2>{t("prototypeSessionTitle")}</h2>
+                        <p>{t("prototypeSessionMeta")}</p>
+                        <div className={styles.sessionMeta}>
+                          <span>
+                            <CalendarDays size={15} />{" "}
+                            {t("prototypeSessionDate")}
+                          </span>
+                          <span>
+                            <Clock3 size={15} /> {t("prototypeSessionDuration")}
+                          </span>
+                        </div>
+                        <div className={styles.sessionPlan}>
+                          <strong>{t("prototypeSessionDetails")}</strong>
+                          <p>{t("prototypeSessionPlan")}</p>
+                        </div>
+                        <button
+                          className={styles.primaryButton}
+                          onClick={() => notify(t("prototypeDemoMeetingToast"))}
+                        >
+                          <Video size={17} /> {t("prototypeJoinSession")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.pastSessions}>
+                      <div className={styles.pastSessionRow}>
+                        <span
+                          className={`${styles.avatar} ${styles.avatarGreen}`}
+                        >
+                          TK
+                        </span>
+                        <div>
+                          <strong>{t("prototypeSessionHistoryTitle")}</strong>
+                          <small>{t("prototypeSessionHistoryDateOne")}</small>
+                        </div>
+                        <span className={styles.completePill}>
+                          <Check size={14} /> {t("prototypeSessionCompleted")}
+                        </span>
+                      </div>
+                      <div className={styles.pastSessionRow}>
+                        <span
+                          className={`${styles.avatar} ${styles.avatarCoral}`}
+                        >
+                          MB
+                        </span>
+                        <div>
+                          <strong>{t("prototypeSessionHistoryFigma")}</strong>
+                          <small>{t("prototypeSessionHistoryDateTwo")}</small>
+                        </div>
+                        <span className={styles.completePill}>
+                          <Check size={14} /> {t("prototypeSessionCompleted")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className={styles.pastSessions}>
-                  <div className={styles.pastSessionRow}>
-                    <span className={`${styles.avatar} ${styles.avatarGreen}`}>
-                      TK
-                    </span>
-                    <div>
-                      <strong>{t("prototypeSessionHistoryTitle")}</strong>
-                      <small>{t("prototypeSessionHistoryDateOne")}</small>
-                    </div>
-                    <span className={styles.completePill}>
-                      <Check size={14} /> {t("prototypeSessionCompleted")}
-                    </span>
-                  </div>
-                  <div className={styles.pastSessionRow}>
-                    <span className={`${styles.avatar} ${styles.avatarCoral}`}>
-                      MB
-                    </span>
-                    <div>
-                      <strong>{t("prototypeSessionHistoryFigma")}</strong>
-                      <small>{t("prototypeSessionHistoryDateTwo")}</small>
-                    </div>
-                    <span className={styles.completePill}>
-                      <Check size={14} /> {t("prototypeSessionCompleted")}
-                    </span>
-                  </div>
+                <div className={styles.emptyState}>
+                  <h2>{t("prototypeNoSessions")}</h2>
+                  <p>{t("prototypeNoSessionsText")}</p>
+                  <button
+                    className={styles.primaryButton}
+                    onClick={() => openScreen("explore")}
+                  >
+                    {t("prototypeNoSessionsAction")} <ArrowRight size={16} />
+                  </button>
                 </div>
               )}
             </section>
@@ -1058,7 +1309,7 @@ export function PrototypeApp() {
 
           {screen === "profile" && (
             <section className={styles.profileScreen}>
-              {editingProfile ? (
+              {editingProfile && isDemoMode ? (
                 <form
                   className={styles.profileForm}
                   onSubmit={(event) => {
@@ -1074,21 +1325,25 @@ export function PrototypeApp() {
                     {t("prototypeDisplayName")}
                     <input
                       value={displayName}
-                      onChange={(event) => setDisplayNameDraft(event.target.value)}
+                      onChange={(event) =>
+                        setDisplayNameDraft(event.target.value)
+                      }
                     />
                   </label>
                   <label className={styles.fieldLabel}>
                     {t("prototypeStudyArea")}
                     <input
                       value={studyArea}
-                      onChange={(event) => setStudyArea(event.target.value)}
+                      onChange={(event) =>
+                        setStudyAreaDraft(event.target.value)
+                      }
                     />
                   </label>
                   <label className={styles.fieldLabel}>
                     {t("prototypeAbout")}
                     <textarea
                       value={about}
-                      onChange={(event) => setAbout(event.target.value)}
+                      onChange={(event) => setAboutDraft(event.target.value)}
                       rows={3}
                     />
                   </label>
@@ -1101,8 +1356,10 @@ export function PrototypeApp() {
                           <button
                             aria-label={`${t("prototypeNewSkillRemove")} ${skill}`}
                             onClick={() => {
-                              setMySkills((current) =>
-                                current.filter((item) => item !== skill),
+                              setMySkillsDraft((current) =>
+                                (current ?? mySkills).filter(
+                                  (item) => item !== skill,
+                                ),
                               );
                             }}
                             type="button"
@@ -1143,36 +1400,92 @@ export function PrototypeApp() {
                     )}
                   </div>
                   <div className={styles.formActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={cancelProfileEdit}>{t("prototypeCancel")}</button>
-                  <button className={styles.primaryButton} type="submit">
-                    <Check size={16} /> {t("prototypeSave")}
-                  </button>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={cancelProfileEdit}
+                    >
+                      {t("prototypeCancel")}
+                    </button>
+                    <button className={styles.primaryButton} type="submit">
+                      <Check size={16} /> {t("prototypeSave")}
+                    </button>
                   </div>
                 </form>
+              ) : isDemoMode ? (
+                <article className={styles.profileView}>
+                  <header className={styles.profileIdentity}>
+                    <span className={styles.avatarProfile} aria-hidden="true">
+                      {displayName
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")
+                        .slice(0, 2)}
+                    </span>
+                    <div>
+                      <h1>{displayName}</h1>
+                      {studyArea && <p>{studyArea}</p>}
+                    </div>
+                    <button
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        setProfileSnapshot({
+                          name: displayName,
+                          study: studyArea,
+                          about,
+                          skills: [...mySkills],
+                        });
+                        setEditingProfile(true);
+                      }}
+                    >
+                      {t("profileEditAction")}
+                    </button>
+                  </header>
+                  {about && (
+                    <section className={styles.profileSection}>
+                      <h2>{t("profileAboutHeading")}</h2>
+                      <p>{about}</p>
+                    </section>
+                  )}
+                  {mySkills.length > 0 && (
+                    <section className={styles.profileSection}>
+                      <h2>{t("prototypeSkillListTitle")}</h2>
+                      <ul className={styles.profileSkillList}>
+                        {mySkills.map((skill) => (
+                          <li key={skill}>{skill}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </article>
               ) : (
                 <article className={styles.profileView}>
                   <header className={styles.profileIdentity}>
                     <span className={styles.avatarProfile} aria-hidden="true">
-                      {displayName.split(" ").map((part) => part[0]).join("").slice(0, 2)}
+                      {accountInitials}
                     </span>
                     <div>
-                      <h1>{displayName}</h1>
-                      <p>{studyArea}</p>
+                      <h1>{authSession?.user.name}</h1>
+                      <p>
+                        <strong>{t("prototypeProfileEmail")}:</strong>{" "}
+                        {authSession?.user.email}
+                      </p>
                     </div>
-                    <button className={styles.secondaryButton} onClick={() => {
-                      setProfileSnapshot({ name: displayName, study: studyArea, about, skills: [...mySkills] });
-                      setEditingProfile(true);
-                    }}>{t("profileEditAction")}</button>
                   </header>
-                  {about && <section className={styles.profileSection}>
-                    <h2>{t("profileAboutHeading")}</h2>
-                    <p>{about}</p>
-                  </section>}
                   <section className={styles.profileSection}>
-                    <h2>{t("prototypeSkillListTitle")}</h2>
-                    <ul className={styles.profileSkillList}>
-                      {mySkills.map((skill) => <li key={skill}>{skill}</li>)}
-                    </ul>
+                    <h2>{t("prototypeEmptyProfile")}</h2>
+                    <p>{t("prototypeEmptyProfileText")}</p>
+                    <button
+                      className={styles.primaryButton}
+                      onClick={() =>
+                        openScreen(role === "learner" ? "explore" : "home")
+                      }
+                    >
+                      {role === "learner"
+                        ? t("prototypeProfileGoToMentors")
+                        : t("prototypeNavHome")}{" "}
+                      <ArrowRight size={16} />
+                    </button>
                   </section>
                 </article>
               )}
@@ -1227,18 +1540,29 @@ export function PrototypeApp() {
                 </div>
                 <label className={styles.languageSetting}>
                   {t("prototypeLanguage")}
-                  <span lang="en">English</span>
+                  <span lang={language}>
+                    {language === "en"
+                      ? t("languageEnglish")
+                      : language === "ru"
+                        ? t("languageRussian")
+                        : t("languageKazakh")}
+                  </span>
                 </label>
                 <button
                   className={styles.settingsLink}
                   onClick={() =>
-                    authSession?.user ? openScreen("profile") : router.push("/login")
+                    authSession?.user
+                      ? openScreen("profile")
+                      : router.push("/login")
                   }
                 >
                   <span>
-                    <strong>{authSession?.user.name ?? t("prototypeSignIn")}</strong>
+                    <strong>
+                      {authSession?.user.name ?? t("prototypeSignIn")}
+                    </strong>
                     <small>
-                      {authSession?.user.email ?? t("prototypeSwitchDemoAccount")}
+                      {authSession?.user.email ??
+                        t("prototypeSwitchDemoAccount")}
                     </small>
                   </span>
                   <ArrowRight size={17} />
@@ -1246,9 +1570,7 @@ export function PrototypeApp() {
                 <button
                   className={`${styles.settingsLink} ${styles.signOutLink}`}
                   onClick={() =>
-                    authSession?.user
-                      ? void signOut()
-                      : router.push("/signup")
+                    authSession?.user ? void signOut() : router.push("/signup")
                   }
                 >
                   <span>
@@ -1273,7 +1595,10 @@ export function PrototypeApp() {
       {toast && (
         <div className={styles.toast} role="status">
           <CheckCircle2 size={18} /> {toast}
-          <button onClick={() => setToast("")} aria-label="Dismiss">
+          <button
+            onClick={() => setToast("")}
+            aria-label={t("prototypeDismissToast")}
+          >
             <X size={15} />
           </button>
         </div>
@@ -1289,17 +1614,19 @@ function RequestDetail({
   request: Request;
   onOpen: () => void;
 }) {
+  const t = useTranslations();
+  const stateLabel = requestStateLabel(request.state, t);
   return (
     <article className={styles.requestDetail}>
       <div className={styles.requestDetailTop}>
         <span
           className={
-            request.state === "Time proposed"
+            request.state === "proposed"
               ? styles.requestStateBlue
               : styles.requestStateNeutral
           }
         >
-          <span /> {request.state}
+          <span /> {stateLabel}
         </span>
         <span>{request.date}</span>
       </div>
@@ -1317,6 +1644,18 @@ function RequestDetail({
   );
 }
 
+function requestStateLabel(
+  state: Request["state"],
+  t: ReturnType<typeof useTranslations>,
+) {
+  return {
+    review: t("prototypeStatusReview"),
+    proposed: t("prototypeStatusTimeProposed"),
+    confirmed: t("prototypeStatusConfirmed"),
+    completed: t("prototypeStatusCompleted"),
+  }[state];
+}
+
 function InvitationCard({
   compact = false,
   status,
@@ -1332,6 +1671,7 @@ function InvitationCard({
   onUndo: () => void;
   onOpen: () => void;
 }) {
+  const t = useTranslations();
   const stateLabel =
     status === "accepted"
       ? t("prototypeInvitationStateAccepted")
@@ -1356,7 +1696,6 @@ function InvitationCard({
             <small>{t("prototypeStudentDue")}</small>
           </div>
         </div>
-
       </div>
       <h3>
         {compact
@@ -1405,12 +1744,15 @@ function InvitationCard({
 }
 
 function MentorSkills({ skills }: { skills: readonly string[] }) {
+  const t = useTranslations();
   return (
     <dl className={styles.mentorSkills}>
       <dt>{t("prototypeCanHelpWith")}</dt>
       <dd>
         <ul>
-          {skills.map((skill) => <li key={skill}>{skill}</li>)}
+          {skills.map((skill) => (
+            <li key={skill}>{skill}</li>
+          ))}
         </ul>
       </dd>
     </dl>
@@ -1428,6 +1770,8 @@ function MentorRow({
   onFavorite: () => void;
   onOpen: () => void;
 }) {
+  const t = useTranslations();
+  const localizedMentor = localizeMentor(mentor, t);
   const avatarClass =
     styles[`avatar${capitalize(mentor.color)}` as keyof typeof styles];
   return (
@@ -1443,12 +1787,12 @@ function MentorRow({
           </span>
         </div>
         <p>
-          {mentor.study} · {mentor.city}
+          {localizedMentor.study} · {localizedMentor.city}
         </p>
         <MentorSkills skills={mentor.skills} />
         <div className={styles.mentorAvailability}>
           <CalendarDays size={15} /> {t("prototypeAvailable")}:{" "}
-          <strong>{mentor.availability}</strong>
+          <strong>{localizedMentor.availability}</strong>
         </div>
       </div>
       <div className={styles.mentorRowActions}>

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, MailCheck } from "lucide-react";
 import { authClient } from "@/src/lib/auth-client";
-import { t } from "@/messages/en";
+import { useTranslations } from "@/src/i18n/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import styles from "./auth-concept.module.css";
 
 type AuthMode = "signup" | "login" | "forgot" | "reset";
@@ -22,6 +23,7 @@ export function AuthConcept({
   initialRole?: Role;
   token?: string;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -181,6 +183,7 @@ export function AuthConcept({
         <Link className={styles.backLink} href="/">
           <ArrowLeft aria-hidden="true" /> {t("onboardingBackHome")}
         </Link>
+        <LanguageSwitcher />
       </header>
 
       <section
@@ -482,6 +485,7 @@ function PasswordInput({
   error?: string;
   hint: string;
 }) {
+  const t = useTranslations();
   return (
     <div className={styles.field}>
       <label htmlFor={id}>{label}</label>

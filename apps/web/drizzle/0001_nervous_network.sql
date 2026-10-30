@@ -1,0 +1,1 @@
+ALTER TYPE "public"."event_name" ADD VALUE 'mentor_withdrew' BEFORE 'mentor_no_reply';

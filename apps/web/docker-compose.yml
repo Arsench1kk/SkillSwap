@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-skillswap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skillswap}
+      POSTGRES_DB: ${POSTGRES_DB:-skillswap}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - skillswap-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-skillswap} -d ${POSTGRES_DB:-skillswap}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  skillswap-postgres:

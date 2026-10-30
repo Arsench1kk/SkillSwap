@@ -1,0 +1,12 @@
+[project]
+name = "skillswap-toolkit"
+version = "0.1.0"
+description = "A6 experiment toolkit: frozen thresholds, event validation, anonymisation"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

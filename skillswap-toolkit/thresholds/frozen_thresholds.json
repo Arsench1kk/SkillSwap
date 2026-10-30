@@ -1,0 +1,38 @@
+{
+  "_note": "Commit this file BEFORE E1 starts. Do not edit after data collection begins; changes need an ADR.",
+  "frozen_at": null,
+  "excluded_origins": ["rehearsal"],
+  "e1": {
+    "threshold_mode": "share",
+    "_threshold_mode_note": "OPEN QUESTION #1: 'count' = fixed 5 and 2 of 10; 'share' = 50% and 20% of usable mentors. Confirm with team.",
+    "support_share": 0.5,
+    "weaken_share": 0.2,
+    "support_min_accepts": 5,
+    "weaken_max_accepts": 2,
+    "min_gap_s_minus_p": 2,
+    "min_usable_mentors": 8,
+    "max_no_reply_share": 0.4
+  },
+  "e2": {
+    "cases": 8,
+    "min_stem": 3,
+    "min_creative": 3,
+    "pass_min_matched": 5,
+    "hold_max_matched": 2,
+    "pass_max_avg_minutes": 15,
+    "hold_min_avg_minutes": 25
+  },
+  "e3": {
+    "min_usable_requests": 4,
+    "max_no_shows": 1,
+    "useful_min_minutes": 30,
+    "useful_min_unblocked": 4,
+    "continue_min_useful": 3,
+    "continue_min_share": 0.5,
+    "reconsider_max_useful": 1,
+    "g1_min_share": 0.3,
+    "g2_min_nonnegative_share": 0.7,
+    "negative_rating_max": 2,
+    "_negative_rating_note": "ASSUMPTION: docs do not define 'non-negative'. 1-5 scale, rating <= 2 on usefulness or trust counts as negative. Confirm with team."
+  }
+}

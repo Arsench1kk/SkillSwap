@@ -84,7 +84,11 @@ export function AuthConcept({
     setPending(true);
     try {
       let result: {
-        data?: { token?: string | null; status?: boolean; message?: string } | null;
+        data?: {
+          token?: string | null;
+          status?: boolean;
+          message?: string;
+        } | null;
         error?: { message?: string; status?: number; code?: string } | null;
       };
       if (mode === "signup") {
@@ -160,7 +164,9 @@ export function AuthConcept({
         callbackURL: "/prototype",
       });
       setResendStatus(
-        result.error ? t("authVerificationResendError") : t("authVerificationResent"),
+        result.error
+          ? t("authVerificationResendError")
+          : t("authVerificationResent"),
       );
     } catch {
       setResendStatus(t("authVerificationResendError"));
@@ -242,7 +248,13 @@ export function AuthConcept({
                       : t("authResendVerification")}
                   </button>
                   {resendStatus && (
-                    <p role={resendStatus === t("authVerificationResendError") ? "alert" : "status"}>
+                    <p
+                      role={
+                        resendStatus === t("authVerificationResendError")
+                          ? "alert"
+                          : "status"
+                      }
+                    >
                       {resendStatus}
                     </p>
                   )}
@@ -390,7 +402,13 @@ export function AuthConcept({
                       : t("authResendVerification")}
                   </button>
                   {resendStatus && (
-                    <p role={resendStatus === t("authVerificationResendError") ? "alert" : "status"}>
+                    <p
+                      role={
+                        resendStatus === t("authVerificationResendError")
+                          ? "alert"
+                          : "status"
+                      }
+                    >
                       {resendStatus}
                     </p>
                   )}

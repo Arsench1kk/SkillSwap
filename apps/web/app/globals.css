@@ -1593,9 +1593,17 @@ a {
   border-radius: 0;
   padding: var(--space-4) 0;
 }
-.brief-no-show p { color: var(--ink-muted); }
-.report-form { display: grid; gap: var(--space-6); margin-top: var(--space-6); }
-.report-form .request-choice-list { grid-template-columns: minmax(0, 1fr); }
+.brief-no-show p {
+  color: var(--ink-muted);
+}
+.report-form {
+  display: grid;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+.report-form .request-choice-list {
+  grid-template-columns: minmax(0, 1fr);
+}
 .report-form textarea,
 .rating-form input:not([type="radio"]),
 .status-edit input {
@@ -1608,5 +1616,10 @@ a {
   background: var(--surface);
   color: var(--ink);
 }
-.report-form textarea { resize: vertical; }
-.status-edit summary { min-height: 44px; cursor: pointer; }
+.report-form textarea {
+  resize: vertical;
+}
+.status-edit summary {
+  min-height: 44px;
+  cursor: pointer;
+}

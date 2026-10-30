@@ -56,17 +56,18 @@ export function RequestForm({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-    try {
-      const draftKey = mode === "account" ? `${DRAFT_KEY}-account` : DRAFT_KEY;
-      const saved = sessionStorage.getItem(draftKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<Draft>;
-        setDraft({ ...initialDraft, ...parsed });
+      try {
+        const draftKey =
+          mode === "account" ? `${DRAFT_KEY}-account` : DRAFT_KEY;
+        const saved = sessionStorage.getItem(draftKey);
+        if (saved) {
+          const parsed = JSON.parse(saved) as Partial<Draft>;
+          setDraft({ ...initialDraft, ...parsed });
+        }
+      } catch {
+        sessionStorage.removeItem(DRAFT_KEY);
       }
-    } catch {
-      sessionStorage.removeItem(DRAFT_KEY);
-    }
-    setHydrated(true);
+      setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [mode]);
@@ -84,7 +85,11 @@ export function RequestForm({
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
-  function updateWindow(index: number, key: keyof TimeWindowInput, value: string) {
+  function updateWindow(
+    index: number,
+    key: keyof TimeWindowInput,
+    value: string,
+  ) {
     setDraft((current) => ({
       ...current,
       windows: current.windows.map((window, windowIndex) =>
@@ -101,7 +106,9 @@ export function RequestForm({
     draft.windows.forEach((window, index) => {
       if (!window.start || !window.end) {
         next[`window-${index}`] = t("requestWindowRequired");
-      } else if (new Date(window.end).getTime() <= new Date(window.start).getTime()) {
+      } else if (
+        new Date(window.end).getTime() <= new Date(window.start).getTime()
+      ) {
         next[`window-${index}`] = t("requestWindowOrder");
       }
     });
@@ -124,9 +131,9 @@ export function RequestForm({
       const response = await fetch(
         mode === "account" ? "/api/account/requests" : "/api/request",
         {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(draft),
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(draft),
         },
       );
       const result = (await response.json()) as {
@@ -171,11 +178,13 @@ export function RequestForm({
       <fieldset className="request-fieldset">
         <legend>{t("requestAreaLabel")}</legend>
         <div className="request-choice-list">
-          {([
-            ["STEM", t("requestAreaStem")],
-            ["creative", t("requestAreaCreative")],
-            ["other", t("requestAreaOther")],
-          ] as const).map(([value, label]) => (
+          {(
+            [
+              ["STEM", t("requestAreaStem")],
+              ["creative", t("requestAreaCreative")],
+              ["other", t("requestAreaOther")],
+            ] as const
+          ).map(([value, label]) => (
             <label className="request-choice" key={value}>
               <input
                 type="radio"
@@ -207,7 +216,11 @@ export function RequestForm({
           rows={4}
           required
         />
-        {errors.task ? <p className="request-error" id="request-task-error">{errors.task}</p> : null}
+        {errors.task ? (
+          <p className="request-error" id="request-task-error">
+            {errors.task}
+          </p>
+        ) : null}
       </div>
 
       <div className="request-field">
@@ -221,43 +234,58 @@ export function RequestForm({
           rows={3}
           required
         />
-        {errors.tried ? <p className="request-error" id="request-tried-error">{errors.tried}</p> : null}
+        {errors.tried ? (
+          <p className="request-error" id="request-tried-error">
+            {errors.tried}
+          </p>
+        ) : null}
       </div>
 
       <div className="request-field">
         <label htmlFor="request-deadline">{t("requestDeadlineLabel")}</label>
-        <p className="request-hint" id="request-deadline-hint">{t("requestDeadlineHint")}</p>
+        <p className="request-hint" id="request-deadline-hint">
+          {t("requestDeadlineHint")}
+        </p>
         <div className="request-date-control">
-        <input
-          ref={deadlineInput}
-          id="request-deadline"
-          type="date"
-          min={minDate}
-          max={maxDate}
-          value={draft.deadline}
-          onChange={(event) => update("deadline", event.target.value)}
-          aria-describedby={`request-deadline-hint${maxDate && draft.deadline > maxDate ? " request-deadline-range-error" : ""}${errors.deadline ? " request-deadline-error" : ""}`}
-          aria-invalid={Boolean(errors.deadline)}
-          required
-        />
-        <button
-          className="request-calendar-button"
-          type="button"
-          aria-label={t("requestOpenCalendar")}
-          onClick={() => {
-            if (deadlineInput.current?.showPicker) deadlineInput.current.showPicker();
-            else deadlineInput.current?.focus();
-          }}
-        >
-          <CalendarDays size={18} aria-hidden="true" />
-        </button>
+          <input
+            ref={deadlineInput}
+            id="request-deadline"
+            type="date"
+            min={minDate}
+            max={maxDate}
+            value={draft.deadline}
+            onChange={(event) => update("deadline", event.target.value)}
+            aria-describedby={`request-deadline-hint${maxDate && draft.deadline > maxDate ? " request-deadline-range-error" : ""}${errors.deadline ? " request-deadline-error" : ""}`}
+            aria-invalid={Boolean(errors.deadline)}
+            required
+          />
+          <button
+            className="request-calendar-button"
+            type="button"
+            aria-label={t("requestOpenCalendar")}
+            onClick={() => {
+              if (deadlineInput.current?.showPicker)
+                deadlineInput.current.showPicker();
+              else deadlineInput.current?.focus();
+            }}
+          >
+            <CalendarDays size={18} aria-hidden="true" />
+          </button>
         </div>
         {maxDate && draft.deadline && draft.deadline > maxDate ? (
-          <p className="request-error" id="request-deadline-range-error" role="status">
+          <p
+            className="request-error"
+            id="request-deadline-range-error"
+            role="status"
+          >
             {t("requestIneligibleDeadline")}
           </p>
         ) : null}
-        {errors.deadline ? <p className="request-error" id="request-deadline-error">{errors.deadline}</p> : null}
+        {errors.deadline ? (
+          <p className="request-error" id="request-deadline-error">
+            {errors.deadline}
+          </p>
+        ) : null}
       </div>
 
       <fieldset className="request-fieldset">
@@ -274,7 +302,9 @@ export function RequestForm({
                 <input
                   type="datetime-local"
                   value={window.start}
-                  onChange={(event) => updateWindow(index, "start", event.target.value)}
+                  onChange={(event) =>
+                    updateWindow(index, "start", event.target.value)
+                  }
                   aria-label={`${t("requestWindowStart")} ${index + 1}`}
                 />
               </label>
@@ -283,7 +313,9 @@ export function RequestForm({
                 <input
                   type="datetime-local"
                   value={window.end}
-                  onChange={(event) => updateWindow(index, "end", event.target.value)}
+                  onChange={(event) =>
+                    updateWindow(index, "end", event.target.value)
+                  }
                   aria-label={`${t("requestWindowEnd")} ${index + 1}`}
                 />
               </label>
@@ -295,10 +327,14 @@ export function RequestForm({
               <button
                 className="request-remove-window"
                 type="button"
-                onClick={() => setDraft((current) => ({
-                  ...current,
-                  windows: current.windows.filter((_, windowIndex) => windowIndex !== index),
-                }))}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    windows: current.windows.filter(
+                      (_, windowIndex) => windowIndex !== index,
+                    ),
+                  }))
+                }
               >
                 {t("requestRemoveWindow")}
               </button>
@@ -318,7 +354,9 @@ export function RequestForm({
 
       <div className="request-field">
         <label htmlFor="request-give-back">{t("requestGiveBackLabel")}</label>
-        <p className="request-hint" id="request-give-back-hint">{t("requestGiveBackHint")}</p>
+        <p className="request-hint" id="request-give-back-hint">
+          {t("requestGiveBackHint")}
+        </p>
         <input
           id="request-give-back"
           type="text"
@@ -351,7 +389,9 @@ export function RequestForm({
           </label>
         </div>
         <label className="request-contact-value" htmlFor="request-contact">
-          {draft.contactType === "telegram" ? t("requestTelegramLabel") : t("requestPhoneLabel")}
+          {draft.contactType === "telegram"
+            ? t("requestTelegramLabel")
+            : t("requestPhoneLabel")}
         </label>
         <input
           id="request-contact"
@@ -360,10 +400,16 @@ export function RequestForm({
           value={draft.contact}
           onChange={(event) => update("contact", event.target.value)}
           aria-invalid={Boolean(errors.contact)}
-          aria-describedby={errors.contact ? "request-contact-error" : undefined}
+          aria-describedby={
+            errors.contact ? "request-contact-error" : undefined
+          }
           required
         />
-        {errors.contact ? <p className="request-error" id="request-contact-error">{errors.contact}</p> : null}
+        {errors.contact ? (
+          <p className="request-error" id="request-contact-error">
+            {errors.contact}
+          </p>
+        ) : null}
       </fieldset>
 
       <div className="request-consent-block">
@@ -380,7 +426,9 @@ export function RequestForm({
           <Link href="/privacy">{t("requestPrivacyLink")}</Link>{" "}
           {t("requestContactPrivacy")}
         </p>
-        {errors.consent ? <p className="request-error">{errors.consent}</p> : null}
+        {errors.consent ? (
+          <p className="request-error">{errors.consent}</p>
+        ) : null}
       </div>
 
       {message ? (
@@ -388,7 +436,11 @@ export function RequestForm({
           {message}
         </div>
       ) : null}
-      <button className="ui-button ui-button-primary request-submit" type="submit" disabled={submitting}>
+      <button
+        className="ui-button ui-button-primary request-submit"
+        type="submit"
+        disabled={submitting}
+      >
         {submitting ? t("requestSubmitting") : t("requestSubmit")}
       </button>
     </form>

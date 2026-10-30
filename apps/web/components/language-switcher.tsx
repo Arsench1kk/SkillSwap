@@ -13,7 +13,11 @@ export function LanguageSwitcher() {
   const t = useTranslations();
 
   return (
-    <div className="language-switcher" role="group" aria-label={t("languageLabel")}>
+    <div
+      className="language-switcher"
+      role="group"
+      aria-label={t("languageLabel")}
+    >
       {options.map((option) => (
         <button
           key={option.value}

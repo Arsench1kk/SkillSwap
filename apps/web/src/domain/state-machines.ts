@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "@/db/schema";
+import type * as schema from "@/db/schema";
+import type { DatabaseExecutor, DatabaseTransaction } from "@/db/types";
+import { recordEvent, type EventInput } from "./events";
+import { currentDataOrigin } from "./event-context";
 import {
   learnerRequests,
   mentorBriefs,
@@ -72,10 +74,16 @@ export type TransitionContext = {
   at?: Date;
 };
 
-type Transaction = Parameters<
-  Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
->[0];
-type Database = NodePgDatabase<typeof schema> | Transaction;
+/** The caller selects the approved event; identity/origin are server-derived. */
+export type RequestTransitionEvent = {
+  input: EventInput;
+  /** Loaded by the caller from the relevant brief/session for versioned events. */
+  templateVersion?: string | null;
+};
+
+export type BriefTransitionEvent = {
+  input: EventInput;
+};
 
 function validateTransitionContext(context: TransitionContext): void {
   if (!context.source.trim() || !context.reasonCode.trim()) {
@@ -83,10 +91,7 @@ function validateTransitionContext(context: TransitionContext): void {
   }
 }
 
-async function validateActor(
-  tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
-  actor: TransitionActor,
-) {
+async function validateActor(tx: DatabaseTransaction, actor: TransitionActor) {
   if (actor.type === "system") return null;
   const [participant] = await tx
     .select({ role: participants.role })
@@ -163,11 +168,13 @@ function assertBriefActorCanTransition(
   );
 }
 
+/** Supplying an event writes it atomically; callers must not record it again. */
 export async function transitionLearnerRequest(
-  database: Database,
+  database: DatabaseExecutor,
   requestId: string,
   to: RequestState,
   context: TransitionContext,
+  event?: RequestTransitionEvent,
 ): Promise<TransitionResult<RequestState>> {
   validateTransitionContext(context);
   return database.transaction(async (tx) => {
@@ -213,15 +220,32 @@ export async function transitionLearnerRequest(
       source: context.source,
       reasonCode: context.reasonCode,
     });
+    if (event) {
+      await recordEvent(
+        tx,
+        {
+          participantId: request.participantId,
+          dataOrigin: currentDataOrigin(),
+          templateVersion: event.templateVersion,
+          actorParticipantId:
+            context.actor.type === "operator"
+              ? context.actor.participantId
+              : undefined,
+        },
+        { ...event.input, timestampUtc: at },
+      );
+    }
     return result;
   });
 }
 
+/** The optional event uses the brief's stored version, never a client version. */
 export async function transitionMentorBrief(
-  database: Database,
+  database: DatabaseExecutor,
   briefId: string,
   to: BriefState,
   context: TransitionContext,
+  event?: BriefTransitionEvent,
 ): Promise<TransitionResult<BriefState>> {
   validateTransitionContext(context);
   return database.transaction(async (tx) => {
@@ -230,6 +254,7 @@ export async function transitionMentorBrief(
         status: mentorBriefs.status,
         mentorParticipantId: mentorBriefs.mentorParticipantId,
         requestId: mentorBriefs.requestId,
+        templateVersion: mentorBriefs.templateVersion,
       })
       .from(mentorBriefs)
       .where(eq(mentorBriefs.id, briefId))
@@ -281,6 +306,24 @@ export async function transitionMentorBrief(
       source: context.source,
       reasonCode: context.reasonCode,
     });
+    if (event) {
+      await recordEvent(
+        tx,
+        {
+          participantId:
+            context.actor.type === "participant"
+              ? context.actor.participantId
+              : brief.mentorParticipantId,
+          dataOrigin: currentDataOrigin(),
+          templateVersion: brief.templateVersion,
+          actorParticipantId:
+            context.actor.type === "operator"
+              ? context.actor.participantId
+              : undefined,
+        },
+        { ...event.input, timestampUtc: at },
+      );
+    }
     return result;
   });
 }

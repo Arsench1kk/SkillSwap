@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
 import { events, participants } from "@/db/schema";
 
@@ -83,17 +83,33 @@ export type EventContext = {
   actorParticipantId?: string;
 };
 
-type Transaction = Parameters<
-  Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
->[0];
-type EventDatabase = NodePgDatabase<typeof schema> | Transaction;
+const eventContextSchema = z
+  .object({
+    participantId: z.string().regex(/^[LMO]-[0-9a-f]{10}$/),
+    dataOrigin: z.enum(schema.dataOrigin.enumValues),
+    templateVersion: z
+      .string()
+      .refine((value) => value.trim().length > 0)
+      .nullable()
+      .optional(),
+    actorParticipantId: z
+      .string()
+      .regex(/^O-[0-9a-f]{10}$/)
+      .optional(),
+  })
+  .strict();
+
+export function validateEventContext(context: EventContext) {
+  return eventContextSchema.parse(context);
+}
 
 export async function recordEvent(
-  database: EventDatabase,
-  context: EventContext,
+  database: DatabaseExecutor,
+  serverContext: EventContext,
   untrustedInput: EventInput,
 ) {
   const input = validateEventInput(untrustedInput);
+  const context = validateEventContext(serverContext);
   const [participant] = await database
     .select({ role: participants.role })
     .from(participants)

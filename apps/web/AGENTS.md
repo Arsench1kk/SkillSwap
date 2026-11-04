@@ -1,3 +1,10 @@
+## Team coordination
+
+The root `../../AGENTS.md` also applies. Before implementation, read
+`../../docs/launch/README.md`, the ownership/gates in `../../docs/launch/PLAN.md`,
+the open decisions, and your named task. Work only in that package's owned files;
+do not treat this app-specific file as replacing the root product/data rules.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know

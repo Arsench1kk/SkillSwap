@@ -4,6 +4,14 @@ SkillSwap is a peer-to-peer student learning platform for specific, urgent tasks
 
 The Next.js application lives in `apps/web/`. This keeps the product specification and historical context at the repository root without colliding with generated app files.
 
+## Команде и ИИ-агентам — начать здесь
+
+Актуальные задания с именами, порядок параллельной работы и границы файлов:
+**[docs/launch/README.md](docs/launch/README.md)**.
+Codex: правила в `AGENTS.md`. Claude Code: `CLAUDE.md` импортирует те же правила.
+Перед изменениями выберите назначение своего участника; не выполняйте все задачи
+одновременно и не меняйте общие файлы без их владельца.
+
 ## Run locally
 
 ```sh
@@ -23,6 +31,9 @@ npm --prefix apps/web test
 npm --prefix apps/web run e2e
 ```
 
-The app is currently a bootstrap shell. Follow `docs/PROMPTS.md` for the planned sequence; do not treat unvalidated hypotheses as findings.
-
-The Drizzle configuration and commands are present, but domain tables and migrations are intentionally deferred to P2. Until then, `db:migrate` has no migration set to apply.
+The app includes accounts, domain tables and migrations, request/private-link
+flows, and a partly demo workspace. It is not yet ready for real-user launch.
+Follow `docs/launch/PLAN.md` for the current team work; `docs/PROMPTS.md` is the
+earlier screen-by-screen build sequence. Do not treat hypotheses as findings.
+See `apps/web/README.md` for database/auth setup. Run migrations before local use,
+and verify a separate test database before commands that create fixtures or seeds.

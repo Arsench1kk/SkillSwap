@@ -14,6 +14,23 @@ Read these before any task, in this order:
 
 If something you need is not in these files, stop and ask. Do not invent screens, fields, events, copy or design decisions.
 
+## Team assignments — read before implementation
+
+After the five documents above, read `docs/launch/README.md`, then `docs/launch/PLAN.md`, `docs/launch/DECISIONS.md`, and the named task for the teammate you are assisting. These files define the current launch work, ownership, dependencies and acceptance criteria; `docs/PROMPTS.md` is the earlier build sequence, not a replacement for the team plan.
+
+- D1 Арсен: platform, auth, shared contracts, schema/migrations and shell integration.
+- D2 Руслан: learner requests and discovery.
+- D3 Амир: mentor flow and profiles.
+- D4 Нурлан: sessions, feedback and lifecycle jobs.
+- D5 Тогжан: operator tooling, manual matching and reports.
+- D6 Андрей: CI, i18n, shared UI/configuration and release checks.
+
+Determine your teammate/task from the user's instruction. If it is missing or ambiguous, ask which teammate you are assisting before changing implementation; do not infer identity from Git author settings or take over all six packages. State your task ID, current G0/G1 gate, allowed files and dependencies before editing.
+
+Follow the ownership matrix in `docs/launch/PLAN.md`. Only D1 authors shared schema/migrations; only D6 edits message catalogs, package/lockfiles and shared configuration, except the explicitly coordinated G0 refactor/formatting. Request changes from the file owner instead of modifying their module or copying its business logic. Do not implement proposed feature directories/screens until their specification and dependencies are ready. Open product decisions are not approved requirements; continue independent work while clarifying dependent decisions.
+
+Use a task branch and small PRs, preserving other contributors' work. The user can explicitly authorize publication, but do not push feature changes directly to `main` by default. Keep production data, secrets, raw private links and generated screenshots out of task commits. The audit records a specific local snapshot and does not assert that its unpublished application changes exist on GitHub.
+
 ## Stack (decided defaults)
 
 TypeScript, Next.js App Router, Tailwind CSS, shadcn/ui primitives (restyled with our tokens), PostgreSQL with Drizzle ORM and drizzle-kit migrations, Zod for validation, Vitest for unit tests, Playwright for end-to-end tests, Docker Compose for local Postgres. Server Actions or route handlers for mutations. No separate backend service.

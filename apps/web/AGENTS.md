@@ -4,6 +4,9 @@ The root `../../AGENTS.md` also applies. Before implementation, read
 `../../docs/launch/README.md`, the ownership/gates in `../../docs/launch/PLAN.md`,
 the open decisions, and your named task. Work only in that package's owned files;
 do not treat this app-specific file as replacing the root product/data rules.
+Read `../../docs/launch/HANDOFFS.md` and incoming author records before editing.
+Publish your own cross-team handoff when a task changes another owner's contract
+or dependencies; the protocol applies equally to D1–D6 and their agents.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

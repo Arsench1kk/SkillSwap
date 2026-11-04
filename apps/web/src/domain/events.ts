@@ -47,24 +47,29 @@ const eventInputSchema = z
         message: "Use a non-identifying code",
       });
     }
-    if (event.note && containsContactData(event.note)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["note"],
-        message: "Notes cannot contain contact details",
-      });
+    for (const field of ["note", "reasonCode", "sourceChannel"] as const) {
+      const value = event[field];
+      if (value && containsContactData(value)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [field],
+          message: "Event metadata cannot contain contact details",
+        });
+      }
     }
   });
 
 const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-const handlePattern = /(?:^|\s)@[a-zA-Z0-9_]{2,}/;
+const handlePattern = /(?:^|[^a-zA-Z0-9_])@[a-zA-Z0-9_]{2,}/;
 const phonePattern = /(?:\+?\d[\s().-]*){9,}/;
+const contactLinkPattern = /\b(?:t\.me|telegram\.me|wa\.me)\//i;
 
 export function containsContactData(value: string): boolean {
   return (
     emailPattern.test(value) ||
     handlePattern.test(value) ||
-    phonePattern.test(value)
+    phonePattern.test(value) ||
+    contactLinkPattern.test(value)
   );
 }
 

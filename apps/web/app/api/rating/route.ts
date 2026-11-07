@@ -61,6 +61,7 @@ export async function POST(request: Request) {
           trust: feedback.trust,
           templateVersion: sessions.templateVersion,
           endsAt: sessions.endsAt,
+          completionState: sessions.completionState,
         })
         .from(feedback)
         .innerJoin(sessions, eq(sessions.id, feedback.sessionId))
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
         .for("update")
         .limit(1);
       if (!row) return "unavailable" as const;
-      if (!isRatingWindowOpen(row.endsAt)) return "unavailable" as const;
+      if (!isRatingWindowOpen(row)) return "unavailable" as const;
       if (
         row.unblocked !== null &&
         row.oneLineOutcome !== null &&

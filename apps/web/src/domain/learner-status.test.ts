@@ -15,9 +15,7 @@ describe("learner recovery states", () => {
   });
 
   it("does not mistake an unanswered mentor decline for learner-declined time", () => {
-    expect(learnerRecoveryState("matching", "declined", "pending")).toBe(
-      null,
-    );
+    expect(learnerRecoveryState("matching", "declined", "pending")).toBe(null);
   });
 
   it("distinguishes a cancelled session from a pre-confirmation mentor withdrawal", () => {

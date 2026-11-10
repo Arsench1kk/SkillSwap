@@ -21,9 +21,10 @@ export const learnerRequestInputSchema = z
     task: z.string().trim().min(1).max(3000),
     tried: z.string().trim().min(1).max(2000),
     deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    windows: z.array(
-      z.object({ start: z.string().min(1), end: z.string().min(1) }),
-    ).min(2).max(3),
+    windows: z
+      .array(z.object({ start: z.string().min(1), end: z.string().min(1) }))
+      .min(2)
+      .max(3),
     giveBack: z.string().trim().max(500),
     contactType: z.enum(["telegram", "phone"]),
     contact: z.string().trim().min(1).max(100),
@@ -80,7 +81,10 @@ async function findOrCreateLearnerParticipant(
   now: Date,
 ) {
   const [linked] = await transaction
-    .select({ participantId: accountParticipants.participantId, status: participants.status })
+    .select({
+      participantId: accountParticipants.participantId,
+      status: participants.status,
+    })
     .from(accountParticipants)
     .innerJoin(
       participants,
@@ -169,7 +173,13 @@ export async function submitLearnerRequest(
 
   return db.transaction(async (tx) => {
     const learner = options.authUserId
-      ? { participantId: await findOrCreateLearnerParticipant(tx, options.authUserId, now) }
+      ? {
+          participantId: await findOrCreateLearnerParticipant(
+            tx,
+            options.authUserId,
+            now,
+          ),
+        }
       : await createParticipant(tx, { role: "learner", consentGivenAt: now });
 
     await tx.insert(participantContacts).values({

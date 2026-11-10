@@ -52,7 +52,8 @@
   PostgreSQL-прогона; общий scheduler D6 и перенос entrypoint в G0 не выполнены.
   R07/R11, exact-session token A04 и полная цепочка создания встреч не закрыты.
   Публикация feature-ветки выполнена; документация передачи вынесена
-  в отдельную ветку `codex/nurlan-d4-handoff`, ожидает docs PR/объединения в main.
+  в отдельный [docs PR №9](https://github.com/Arsench1kk/SkillSwap/pull/9),
+  ветка `codex/nurlan-d4-handoff`; публикация в main ожидает объединения №9.
 
 ## Прочитанные и применённые передачи
 

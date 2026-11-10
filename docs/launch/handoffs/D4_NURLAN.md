@@ -18,7 +18,7 @@
   `75d6652265b67687b96953f56a5de944bc71faa9`.
   A05 отдельно: `1627c08`; expiry: `75d6652`.
   Опубликованный head PR №8 на момент передачи:
-  `849d6ed551f467c77f2e8ff7e11e85565505d7aa`.
+  `de5b05bbec9c91787bf1ae106c5b25f2e47a2c3f`.
 - **Base:** main `601efb5` (получена актуальная документация команды). Draft PR D1 №1–6 не объединялись в эту ветку.
 - **Контракт:** `apps/web/src/domain/rating-page.ts` → `isRatingWindowOpen`
   принимает `{ endsAt, completionState }` и необязательный `now`.
@@ -54,7 +54,8 @@
   PostgreSQL-прогона; общий scheduler D6 и перенос entrypoint в G0 не выполнены.
   R07/R11, exact-session token A04 и полная цепочка создания встреч не закрыты.
   Публикация feature-ветки выполнена; документация передачи вынесена
-  в отдельную ветку `codex/nurlan-d4-handoff`, ожидает docs PR/объединения в main.
+  в отдельный [docs PR №9](https://github.com/Arsench1kk/SkillSwap/pull/9),
+  ветка `codex/nurlan-d4-handoff`; публикация в main ожидает объединения №9.
 
 ## Прочитанные и применённые передачи
 

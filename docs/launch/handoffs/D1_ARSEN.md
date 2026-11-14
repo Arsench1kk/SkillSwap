@@ -1,7 +1,7 @@
 # D1 — Арсен: исходящие передачи
 
 Файл ведут Арсен и его агент. [Общий протокол](../HANDOFFS.md).
-Статусы D1-H001–H004, D1-H006 и D1-H008 сверены в GitHub **14 ноября 2026**.
+Статусы D1-H001–H008 сверены в GitHub **14 ноября 2026**.
 Перед использованием сверяйте статус PR и head SHA.
 
 <a id="d1-h001"></a>
@@ -34,10 +34,10 @@
 ## D1-H002 — атомарный переход состояния с событием
 
 - **Адресаты:** D2, D3; также D4, D5, D6 для event context и транзакций.
-- **Статус:** open / draft, не merged. [PR №2](https://github.com/Arsench1kk/SkillSwap/pull/2).
+- **Статус:** в `main`, merge `b1428835b7bdf5afc186dc44d1f28fbdefc6981f`. [PR №2](https://github.com/Arsench1kk/SkillSwap/pull/2).
 - **Ветка:** `codex/arsen-recorded-transitions`; **head SHA:** `16568fc35bd5aa385fe6046f5e65ba459483bcbb`.
 - **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
-  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
+  PR №1 входит в базу. [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43596076989) прошёл.
 - **Контракт:** `apps/web/src/domain/state-machines.ts` → необязательный пятый
   аргумент `{ input: EventInput }` в `transitionLearnerRequest`/
   `transitionMentorBrief`; `events.ts` → строгий `validateEventContext`;
@@ -59,10 +59,10 @@
 ## D1-H003 — приватные ссылки и повторный отзыв
 
 - **Адресаты:** D2, D3, D4, D5, D6.
-- **Статус:** open / draft, не merged. [PR №3](https://github.com/Arsench1kk/SkillSwap/pull/3).
+- **Статус:** в `main`, merge `8ec5e3858ef6485891607080fd9c36814f9ed74c`. [PR №3](https://github.com/Arsench1kk/SkillSwap/pull/3).
 - **Ветка:** `codex/arsen-private-links`; **head SHA:** `ffc108aab5d007750b606d5c3aaed35a31fb2546`.
 - **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
-  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
+  PR №1 входит в базу. [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43596077060) прошёл.
 - **Контракт:** `apps/web/src/domain/private-links.ts` → прежние
   `createPrivateLink`, `verifyPrivateLink`, `revokePrivateLink` с общей валидацией.
 - **Действие:** передавать реальные UUID сущностей либо anonymised participant ID
@@ -81,10 +81,10 @@
 ## D1-H004 — валидация общего лимитера запросов
 
 - **Адресаты:** D2, D3, D4, D5, D6.
-- **Статус:** open / draft, не merged. [PR №4](https://github.com/Arsench1kk/SkillSwap/pull/4).
+- **Статус:** в `main`, merge `8f9e01ec0cfc792ef6623850d4c3b45c48ebc536`. [PR №4](https://github.com/Arsench1kk/SkillSwap/pull/4).
 - **Ветка:** `codex/arsen-rate-limit`; **head SHA:** `6278edb1a24b2f83cc49ae43b8c373793aeeda92`.
 - **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
-  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
+  PR №1 входит в базу. [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43596076994) прошёл.
 - **Контракт:** `apps/web/src/domain/rate-limit.ts` →
   `allowRateLimitedAttempt`, общий `RateLimitScope`.
 - **Действие:** использовать существующие scope, непустой серверный ключ,
@@ -125,12 +125,12 @@
 ## D1-H006 — подтверждение почты и восстановление доступа
 
 - **Автор:** D1 / Арсен. **Адресаты:** D2–D6; D6 — auth/email runbook и проверки выпуска.
-- **Проверено:** 4 ноября 2026. **Статус:** Draft, код не объединён в main.
+- **Проверено:** 14 ноября 2026. **Статус:** в `main`, merge `e7e813c7a9a16198ada84ac9f29a73047698d17b`.
 - **PR:** [№5](https://github.com/Arsench1kk/SkillSwap/pull/5).
   Ветка `codex/arsen-auth-recovery`, полный head SHA
   `3d14aa3e2eddec702ec1c7c5f71b0a8db5d6d4c0`.
 - **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
-  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
+  PR №1 входит в базу. [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43596078031) прошёл.
 - **Контракт:** `apps/web/src/lib/auth.ts` — `auth` по-прежнему использует Better
   Auth и Drizzle. Явно задан `advanced.disableOriginCheck: false`, включая тестовый
   режим библиотеки; production-политика доверенных URL прежняя. Ошибка HTTP Resend
@@ -168,15 +168,13 @@
 ## D1-H007 — контакты в метаданных событий
 
 - **Автор:** D1 / Арсен. **Адресаты:** D2–D6.
-- **Проверено:** 4 ноября 2026. **Статус:** Draft, код не объединён в main.
+- **Проверено:** 14 ноября 2026. **Статус:** в `main`, merge `f3e107aed83cdcc735ab579972cfb354c5ec4a45`.
 - **PR:** [№6](https://github.com/Arsench1kk/SkillSwap/pull/6).
   Ветка `codex/arsen-event-privacy`, полный head SHA
-  `721e14d4cd13621c185c9caf40997b7f048e078e`.
-- **Base и зависимости:** `codex/arsen-recorded-transitions`, PR №2, SHA
-  `95a4aa0ddbb005fb679e8fb2b9654421e02f3f32`, изначально. PR №1 уже в `main`; текущий head PR №2 указан в D1-H002.
-  Включена документация main `e0433afa5177fb2c74bdfeeb5420f1ee0726cf80`;
-  это не объединение прикладного кода. После зависимостей перенаправить в main и
-  повторить CI.
+  `f868986cd5df507c1fc03b47b9a0c88ba217142d`.
+- **Base:** `main` на `e7e813c7a9a16198ada84ac9f29a73047698d17b`.
+  PR №2 и остальные зависимости входят в базу.
+  [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43596313467) прошёл.
 - **Контракт:** `apps/web/src/domain/events.ts` — `validateEventInput` проверяет
   контакты в `note`, `reasonCode`, `sourceChannel` до SQL внутри `recordEvent`.
   `containsContactData` дополнительно распознаёт handle после пунктуации и прямые
@@ -204,7 +202,7 @@
   отклоняются. Новые enum/закрытые reason codes не вводятся: R10 остаётся открытым.
   Старые append-only события не переписываются. Нет новых зависимостей/миграций/UI.
   G0 и остальные продуктовые решения не закрыты. Передача опубликована отдельно
-  в main; код остаётся в Draft PR №6.
+  в main; код объединён через PR №6.
 
 <a id="d1-h008"></a>
 
@@ -217,9 +215,9 @@
 - **Base:** `main`, SHA `435344c1e09b3fa09f99b82e90ed5c7064dbab64`.
   Prettier применён к 27 файлам `apps/web` поверх коммита D2.
   Правки Руслана сохранены. Предыдущий head `c5ddf02` входит в историю ветки.
-- **Действие:** PR №1 объединён. PR №2–5 обновлены из `main`. Конфликт PR №5
+- **Действие:** PR №1–5 объединены в `main`. Конфликт PR №5
   в `apps/web/src/lib/auth.ts` разрешён с сохранением исправлений почты.
-  PR №6 зависит от №2. Остальные ветки обновлять с учётом их баз.
+  PR №6 прошёл CI на актуальной базе и объединён.
 - **Проверки:** Prettier debug-check, полный format:check, lint, typecheck,
   diff-check, миграции и 89 тестов на временном PostgreSQL прошли. Один сценарий
   помечен TODO. Содержимое JSON метаданных Drizzle совпадает после парсинга.

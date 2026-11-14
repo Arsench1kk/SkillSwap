@@ -5,5 +5,7 @@ import { AuthConcept } from "@/components/auth-concept";
 
 export function ResetPasswordContent() {
   const searchParams = useSearchParams();
-  return <AuthConcept mode="reset" token={searchParams.get("token") ?? undefined} />;
+  return (
+    <AuthConcept mode="reset" token={searchParams.get("token") ?? undefined} />
+  );
 }

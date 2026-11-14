@@ -507,7 +507,6 @@
 .settingsGroup,
 .profileSummary,
 .profileForm,
-.requestDetail,
 .personAbout,
 .personAside {
   background: var(--surface);
@@ -699,33 +698,6 @@
 .requestRow > small {
   color: var(--ink-muted);
   font-size: 12px;
-}
-
-.requestStateBlue,
-.requestStateNeutral {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: fit-content;
-  color: var(--accent-tint-ink);
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-}
-
-.requestStateBlue > span,
-.requestStateNeutral > span {
-  width: 7px;
-  height: 7px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.requestStateNeutral {
-  color: var(--warn);
-}
-
-.requestStateNeutral > span {
-  background: var(--warn);
 }
 
 .panelFooter {
@@ -1596,55 +1568,6 @@
 
 .listScreen > .screenHeading {
   margin-bottom: 23px;
-}
-
-.requestList {
-  display: grid;
-  gap: 12px;
-}
-
-.requestDetail {
-  padding: 19px 21px;
-}
-
-.requestDetailTop,
-.requestDetailBottom,
-.requestDetailBottom > span {
-  display: flex;
-  align-items: center;
-}
-
-.requestDetailTop {
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.requestDetail h2 {
-  margin: 12px 0 4px;
-  font-size: 18px;
-  line-height: 25px;
-}
-
-.requestDetail > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.requestDetailBottom {
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 15px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.requestDetailBottom > span {
-  gap: 6px;
-  color: var(--ink-muted);
-  font-size: 12px;
 }
 
 .infoStrip {
@@ -2573,21 +2496,6 @@
     padding: 0 9px;
   }
 
-  .requestDetail {
-    padding: 15px;
-  }
-
-  .requestDetailTop {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .requestDetail h2 {
-    font-size: var(--type-meta-size);
-    line-height: 22px;
-  }
-
   .infoStrip {
     padding: 12px;
   }
@@ -2867,7 +2775,6 @@
 }
 .mentorRow,
 .invitationCard,
-.requestDetail,
 .settingsGroup,
 .profileForm,
 .personAbout,
@@ -2878,14 +2785,12 @@
   background: transparent;
 }
 .mentorRow,
-.invitationCard,
-.requestDetail {
+.invitationCard {
   padding: var(--space-6) 0;
   border-bottom: 1px solid var(--line);
 }
 .mentorList,
-.invitationStack,
-.requestList {
+.invitationStack {
   gap: 0;
 }
 .mentorRow:hover {

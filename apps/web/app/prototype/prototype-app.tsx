@@ -38,6 +38,10 @@ import { RequestForm } from "@/app/request/request-form";
 import { authClient } from "@/src/lib/auth-client";
 import { useLanguage, useTranslations } from "@/src/i18n/provider";
 import {
+  PrototypeRequests,
+  type PrototypeRequest,
+} from "@/features/learner/prototype-requests";
+import {
   PrototypeSessions,
   type PrototypeSessionTab,
 } from "@/features/sessions/prototype-sessions";
@@ -67,15 +71,6 @@ type Mentor = {
   about: string;
   color: "blue" | "green" | "gold" | "coral";
 };
-type Request = {
-  id: number;
-  title: string;
-  detail: string;
-  state: "review" | "proposed" | "confirmed" | "completed";
-  person: string;
-  date: string;
-};
-
 const mentors: Mentor[] = [
   {
     id: 1,
@@ -183,7 +178,9 @@ function localizeMentor(mentor: Mentor, t: ReturnType<typeof useTranslations>) {
   };
 }
 
-const initialRequests = (t: ReturnType<typeof useTranslations>): Request[] => [
+const initialRequests = (
+  t: ReturnType<typeof useTranslations>,
+): PrototypeRequest[] => [
   {
     id: 1,
     title: t("prototypeTaskTitle"),
@@ -246,12 +243,14 @@ export function PrototypeApp() {
   const [search, setSearch] = useState("");
   const [selectedMentor, setSelectedMentor] = useState<Mentor>(mentors[0]);
   const selectedMentorCopy = localizeMentor(selectedMentor, t);
-  const [accountRequests, setAccountRequests] = useState<Request[]>([]);
+  const [accountRequests, setAccountRequests] = useState<PrototypeRequest[]>(
+    [],
+  );
   const [accountRequestsOwner, setAccountRequestsOwner] = useState<
     string | null
   >(null);
   const [demoRequestsOverride, setDemoRequestsOverride] = useState<
-    Request[] | null
+    PrototypeRequest[] | null
   >(null);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsLoadError, setRequestsLoadError] = useState(false);
@@ -1109,62 +1108,15 @@ export function PrototypeApp() {
           )}
 
           {screen === "requests" && role === "learner" && (
-            <section className={styles.listScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeRequestsTitle")}</h1>
-                </div>
-                {requests.length > 0 && (
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("new-request")}
-                  >
-                    {t("prototypeSubmitRequest")} <ArrowRight size={17} />
-                  </button>
-                )}
-              </div>
-              {authSession?.user && requestsLoading ? (
-                <p role="status">{t("prototypeRequestsLoading")}</p>
-              ) : null}
-              {authSession?.user && requestsLoadError ? (
-                <div role="alert" className={styles.formNotice}>
-                  <p>{t("prototypeRequestsLoadError")}</p>
-                  <button
-                    className={styles.textButton}
-                    onClick={() => void loadAccountRequests()}
-                  >
-                    {t("prototypeRetry")}
-                  </button>
-                </div>
-              ) : null}
-              {!requestsLoading &&
-              !requestsLoadError &&
-              requests.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <h2>{t("prototypeNoRequestsTitle")}</h2>
-                  <p>{t("prototypeNoRequestsText")}</p>
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("new-request")}
-                  >
-                    {t("prototypeDescribeTask")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              ) : null}
-              <div className={styles.requestList}>
-                {requests.map((request) => (
-                  <RequestDetail
-                    key={request.id}
-                    request={request}
-                    onOpen={() =>
-                      notify(
-                        `${requestStateLabel(request.state, t)} · ${request.date}`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </section>
+            <PrototypeRequests
+              requests={requests}
+              hasAccount={Boolean(authSession?.user)}
+              requestsLoading={requestsLoading}
+              requestsLoadError={requestsLoadError}
+              onNewRequest={() => openScreen("new-request")}
+              onRetry={() => void loadAccountRequests()}
+              onOpen={notify}
+            />
           )}
 
           {screen === "requests" && role === "mentor" && (
@@ -1509,55 +1461,6 @@ export function PrototypeApp() {
       )}
     </div>
   );
-}
-
-function RequestDetail({
-  request,
-  onOpen,
-}: {
-  request: Request;
-  onOpen: () => void;
-}) {
-  const t = useTranslations();
-  const stateLabel = requestStateLabel(request.state, t);
-  return (
-    <article className={styles.requestDetail}>
-      <div className={styles.requestDetailTop}>
-        <span
-          className={
-            request.state === "proposed"
-              ? styles.requestStateBlue
-              : styles.requestStateNeutral
-          }
-        >
-          <span /> {stateLabel}
-        </span>
-        <span>{request.date}</span>
-      </div>
-      <h2>{request.title}</h2>
-      <p>{request.detail}</p>
-      <div className={styles.requestDetailBottom}>
-        <span>
-          <UserRound size={15} /> {request.person}
-        </span>
-        <button className={styles.textButton} onClick={onOpen}>
-          {t("prototypeOpenRequest")} <ArrowRight size={15} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function requestStateLabel(
-  state: Request["state"],
-  t: ReturnType<typeof useTranslations>,
-) {
-  return {
-    review: t("prototypeStatusReview"),
-    proposed: t("prototypeStatusTimeProposed"),
-    confirmed: t("prototypeStatusConfirmed"),
-    completed: t("prototypeStatusCompleted"),
-  }[state];
 }
 
 function InvitationCard({

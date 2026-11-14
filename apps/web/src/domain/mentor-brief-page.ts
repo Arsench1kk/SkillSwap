@@ -147,7 +147,9 @@ export async function getMentorBriefPage(
     return {
       state: "confirmed",
       token,
-      proposedSlot: row.proposedSlotAt ? formatKazakhstanTime(row.proposedSlotAt, "en") : null,
+      proposedSlot: row.proposedSlotAt
+        ? formatKazakhstanTime(row.proposedSlotAt, "en")
+        : null,
       confirmedTask: safeBriefText(row.taskDescription),
     };
 
@@ -178,7 +180,12 @@ export async function getMentorBriefPage(
     : null;
 
   return {
-    state: row.briefStatus === "declined" ? "declined" : isAnswered ? "answered" : "unanswered",
+    state:
+      row.briefStatus === "declined"
+        ? "declined"
+        : isAnswered
+          ? "answered"
+          : "unanswered",
     token,
     taskDescription: safeBriefText(row.taskDescription),
     triedAlready: safeBriefText(row.triedAlready),

@@ -507,7 +507,6 @@
 .settingsGroup,
 .profileSummary,
 .profileForm,
-.sessionDetailCard,
 .personAbout,
 .personAside {
   background: var(--surface);
@@ -605,10 +604,7 @@
   min-width: 0;
 }
 
-.sessionStatus,
-.sessionMeta,
-.sessionMeta span,
-.sessionMeta span svg {
+.sessionStatus {
   display: flex;
   align-items: center;
 }
@@ -640,22 +636,6 @@
   margin: 0;
   color: var(--ink-muted);
   font-size: var(--type-meta-size);
-}
-
-.sessionMeta {
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 15px 0;
-}
-
-.sessionMeta span {
-  gap: 7px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.sessionMeta svg {
-  color: var(--accent);
 }
 
 .outlineButton {
@@ -1594,80 +1574,6 @@
   margin-top: 16px;
 }
 
-.sessionTabs {
-  display: flex;
-  gap: 23px;
-  margin: 0 0 16px;
-  border-bottom: 1px solid var(--line);
-}
-
-.sessionTabs button {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 43px;
-  padding: 0 2px;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  font-size: var(--type-meta-size);
-  cursor: pointer;
-}
-
-.sessionTabs .sessionTabActive {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: var(--type-semibold);
-}
-
-.sessionTabs span {
-  display: grid;
-  min-width: 20px;
-  height: 20px;
-  place-items: center;
-  padding: 0 5px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border-radius: 999px;
-  font-size: 11px;
-}
-
-.sessionDetailCard {
-  display: grid;
-  grid-template-columns: 70px minmax(0, 1fr) 230px;
-  gap: 20px;
-  padding: 23px;
-}
-
-.sessionCalendar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  align-self: start;
-  min-height: 85px;
-  color: var(--accent);
-  background: var(--accent-tint);
-  border-radius: 12px;
-}
-
-.sessionCalendar strong {
-  font-size: 30px;
-  line-height: 34px;
-}
-
-.sessionCalendar span {
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-  letter-spacing: 0.07em;
-}
-
-.sessionDetailMain {
-  min-width: 0;
-}
-
-.confirmedPill,
 .completePill {
   display: inline-flex;
   align-items: center;
@@ -1676,99 +1582,6 @@
   color: var(--success);
   font-size: 11px;
   font-weight: var(--type-semibold);
-}
-
-.sessionDetailMain h2 {
-  margin: 8px 0 3px;
-  font-size: 20px;
-  line-height: 26px;
-}
-
-.sessionDetailMain > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.sessionDetailMain .sessionMeta {
-  margin: 15px 0;
-}
-
-.sessionPlan {
-  margin: 14px 0;
-  padding-top: 13px;
-  border-top: 1px solid var(--line);
-}
-
-.sessionPlan strong {
-  font-size: var(--type-meta-size);
-}
-
-.sessionPlan p {
-  margin: 4px 0 0;
-  color: var(--ink-muted);
-  font-size: 12px;
-  line-height: 19px;
-}
-
-.sessionContact {
-  align-self: stretch;
-  padding: 14px;
-  color: var(--success);
-  background: var(--success-tint);
-  border-radius: var(--radius-control);
-}
-
-.sessionContact > svg {
-  margin-bottom: 9px;
-}
-
-.sessionContact strong {
-  display: block;
-  font-size: 12px;
-}
-
-.sessionContact p {
-  margin: 4px 0 0;
-  font-size: 11px;
-  line-height: 17px;
-}
-
-.pastSessions {
-  display: grid;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-}
-
-.pastSessionRow {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 16px 18px;
-}
-
-.pastSessionRow + .pastSessionRow {
-  border-top: 1px solid var(--line);
-}
-
-.pastSessionRow > div {
-  flex: 1;
-}
-
-.pastSessionRow strong,
-.pastSessionRow small {
-  display: block;
-}
-
-.pastSessionRow strong {
-  font-size: var(--type-meta-size);
-}
-
-.pastSessionRow small {
-  margin-top: 3px;
-  color: var(--ink-muted);
-  font-size: 12px;
 }
 
 .completePill {
@@ -2366,14 +2179,6 @@
     grid-template-columns: minmax(0, 1fr) minmax(270px, 0.8fr);
   }
 
-  .sessionDetailCard {
-    grid-template-columns: 60px minmax(0, 1fr);
-  }
-
-  .sessionContact {
-    grid-column: 2;
-  }
-
   .personContent {
     grid-template-columns: minmax(0, 1fr) 290px;
   }
@@ -2512,15 +2317,6 @@
   .sessionBody h3 {
     font-size: var(--type-meta-size);
     line-height: 21px;
-  }
-
-  .sessionMeta {
-    gap: 6px 11px;
-    margin: 10px 0;
-  }
-
-  .sessionMeta span {
-    font-size: 11px;
   }
 
   .discoverPanel,
@@ -2702,42 +2498,6 @@
 
   .infoStrip {
     padding: 12px;
-  }
-
-  .sessionDetailCard {
-    grid-template-columns: 51px minmax(0, 1fr);
-    gap: 12px;
-    padding: 15px;
-  }
-
-  .sessionCalendar {
-    min-height: 68px;
-  }
-
-  .sessionCalendar strong {
-    font-size: 24px;
-  }
-
-  .sessionDetailMain h2 {
-    font-size: var(--type-meta-size);
-    line-height: 22px;
-  }
-
-  .sessionContact {
-    grid-column: 1 / -1;
-  }
-
-  .pastSessionRow {
-    flex-wrap: wrap;
-    padding: 13px;
-  }
-
-  .pastSessionRow > div {
-    min-width: calc(100% - 60px);
-  }
-
-  .pastSessionRow .completePill {
-    margin-left: 49px;
   }
 
   .profileSummary {
@@ -3015,7 +2775,6 @@
 }
 .mentorRow,
 .invitationCard,
-.sessionDetailCard,
 .settingsGroup,
 .profileForm,
 .personAbout,
@@ -3059,9 +2818,6 @@
 .skillChips {
   gap: var(--space-2) var(--space-4);
 }
-.sessionDetailCard {
-  grid-template-columns: auto minmax(0, 1fr);
-}
 .workspaceFocus {
   border: 0;
   border-radius: 0;
@@ -3081,12 +2837,6 @@
   line-height: var(--type-page-title-line);
 }
 @media (max-width: 680px) {
-  .sessionDetailCard {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .sessionCalendar {
-    display: none;
-  }
   .workspaceFocus {
     padding-inline: 0;
   }

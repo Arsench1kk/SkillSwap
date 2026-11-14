@@ -121,3 +121,42 @@
   PostgreSQL-прогон через SKILLSWAP_D4_TEST_DATABASE_URL. D1/D5 учитывать D4-H001:
   эти сценарии подтверждают текущие блокировки/rollback, не меняют R07/R11.
   G0 форматирование №7 всё ещё не merged; общий CI может остановиться до тестов.
+
+<a id="d4-h003"></a>
+
+## D4-H003 — воспроизведение A04 и диагностика CI
+
+- **Автор:** D4 / Нурлан. **Адресаты:** D1, D2, D3, D5, D6.
+- **Проверено:** 14 ноября 2026. **Статус:** дополнение Draft PR №8;
+  документация — PR №9, в main ещё не объединена.
+- **Ветка:** `codex/nurlan-sessions-a05`. **Коммит теста:**
+  `88e96aa5f4f915f56f8549f9a3bf962329aff7ff`.
+  Base — head №8 `ecda10a29cbcf64d03ced357375fb0199817fb31`.
+- **Результат:** `apps/web/src/domain/session-page-a04.integration.test.ts`
+  воспроизводит A04 на настоящем PostgreSQL с Drizzle, createPrivateLink,
+  verifyPrivateLink и getSessionPage. Подменяется только подключение к изолированной
+  схеме. Для learner и mentor, при двух порядках вставки: одна встреча работает;
+  после добавления второй два различных participant-token возвращают одну и ту же
+  session/task/Meet. Конкретный выбранный SQL-ряд не предполагается. Отзыв token
+  по-прежнему закрывает ссылку.
+- **Важно:** это characterization известного дефекта, не подтверждение исправления.
+  Зелёный прогон означает воспроизводимость проблемы. TODO явно отмечает будущую
+  приёмку session/recipient binding для read/start/cancel/rating и legacy-политики.
+  После принятия модели заменить characterization проверками правильного доступа;
+  не сохранять нынешние assertions как желаемое поведение продукта.
+- **Действие D1:** согласовать session + recipient binding и совместимость
+  participant-token по R07; изменение общего контракта/схемы делает D1.
+  D2/D3/D5 участвуют в lifecycle/выдаче ссылок. D4 после передачи реализует exact
+  session read/actions в своих файлах. Ни сортировка, ни новое поле по догадке
+  этим тестом не вводятся. Product/API/schema не изменены.
+- **Проверки:** временный PostgreSQL 18.6, 4 новых сценария прошли; общий прогон
+  с SKILLSWAP_D4_TEST_DATABASE_URL: 66 passed, 8 остальных DB skipped, 1 TODO.
+  Typecheck, lint, changed-file Prettier и diff-check прошли.
+  Fixtures используют минимальные таблицы в уникальной схеме; real migration,
+  auth и mutations start/cancel пока вне прогона. Новых зависимостей нет.
+- **CI:** проверен [run PR №8](https://github.com/Arsench1kk/SkillSwap/actions/runs/43588711314/job/132428655952)
+  для head ecda10a: format:check остановился на **27** файлах, включая существующую
+  rating-form.tsx. Новые D4 тесты среди warnings отсутствуют. Остальные шаги CI
+  этим запуском не подтверждены. D6/D1: PR №7 пока открыт; после его объединения
+  обновить D4 и проверить остаточные warnings/CI, не считать заранее все 27 закрытыми.
+  Общие файлы не переформатировались агентом D4.

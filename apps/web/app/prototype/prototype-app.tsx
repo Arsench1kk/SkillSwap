@@ -19,20 +19,17 @@ import {
   ChevronDown,
   Clock3,
   Compass,
-  Heart,
   Home,
   LogOut,
   Menu,
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings,
   ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
-import type { MessageKey } from "@/messages/en";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { RequestForm } from "@/app/request/request-form";
 import { authClient } from "@/src/lib/auth-client";
@@ -45,6 +42,17 @@ import {
   PrototypeSessions,
   type PrototypeSessionTab,
 } from "@/features/sessions/prototype-sessions";
+import {
+  PrototypeDiscovery,
+  MentorSkills,
+} from "@/features/discovery/prototype-discovery";
+import {
+  mentors,
+  localizeMentor,
+  capitalize,
+  type Mentor,
+  type SkillFilter,
+} from "@/features/discovery/prototype-mentors";
 import styles from "./prototype.module.css";
 
 type Role = "learner" | "mentor";
@@ -57,127 +65,6 @@ type Screen =
   | "settings"
   | "mentor-profile"
   | "new-request";
-type SkillFilter = "all" | "Design" | "Data" | "Programming" | "Video";
-type Mentor = {
-  id: 1 | 2 | 3 | 4;
-  name: string;
-  initials: string;
-  study: string;
-  city: string;
-  category: Exclude<SkillFilter, "all">;
-  skills: string[];
-  proof: string;
-  availability: string;
-  about: string;
-  color: "blue" | "green" | "gold" | "coral";
-};
-const mentors: Mentor[] = [
-  {
-    id: 1,
-    name: "Aigerim S.",
-    initials: "AS",
-    study: "Information systems · Year 3",
-    city: "Almaty",
-    category: "Data",
-    skills: ["Excel", "Power Query", "Data visualization"],
-    proof: "Dashboard project reviewed by the team",
-    availability: "Thu · 18:30",
-    about:
-      "I like turning messy spreadsheets into clear, useful dashboards. Happy to work through one real task together.",
-    color: "blue",
-  },
-  {
-    id: 2,
-    name: "Timur K.",
-    initials: "TK",
-    study: "Computer science · Year 4",
-    city: "Almaty",
-    category: "Programming",
-    skills: ["Python", "Pandas", "Jupyter"],
-    proof: "Course project and code sample reviewed",
-    availability: "Fri · 16:00",
-    about:
-      "I can help you find the bug, understand the error, and leave with a way to solve the next one yourself.",
-    color: "green",
-  },
-  {
-    id: 3,
-    name: "Mira B.",
-    initials: "MB",
-    study: "Visual communication · Year 2",
-    city: "Astana",
-    category: "Design",
-    skills: ["Figma", "Layout", "Design systems"],
-    proof: "Portfolio work reviewed by the team",
-    availability: "Sat · 11:00",
-    about:
-      "I enjoy making complex screens feel simple. Bring a draft and we can improve one part at a time.",
-    color: "coral",
-  },
-  {
-    id: 4,
-    name: "Dias A.",
-    initials: "DA",
-    study: "Media production · Year 3",
-    city: "Almaty",
-    category: "Video",
-    skills: ["Premiere Pro", "Color", "Audio"],
-    proof: "Editing work sample reviewed by the team",
-    availability: "Sun · 14:00",
-    about:
-      "I can help untangle an editing workflow or make a rough cut feel more intentional.",
-    color: "gold",
-  },
-];
-
-const mentorCopyKeys: Record<
-  Mentor["id"],
-  {
-    study: MessageKey;
-    proof: MessageKey;
-    about: MessageKey;
-    availability: MessageKey;
-  }
-> = {
-  1: {
-    study: "prototypeSampleMentorOneStudy",
-    proof: "prototypeSampleMentorOneProof",
-    about: "prototypeSampleMentorOneAbout",
-    availability: "prototypeSampleMentorOneAvailability",
-  },
-  2: {
-    study: "prototypeSampleMentorTwoStudy",
-    proof: "prototypeSampleMentorTwoProof",
-    about: "prototypeSampleMentorTwoAbout",
-    availability: "prototypeSampleMentorTwoAvailability",
-  },
-  3: {
-    study: "prototypeSampleMentorThreeStudy",
-    proof: "prototypeSampleMentorThreeProof",
-    about: "prototypeSampleMentorThreeAbout",
-    availability: "prototypeSampleMentorThreeAvailability",
-  },
-  4: {
-    study: "prototypeSampleMentorFourStudy",
-    proof: "prototypeSampleMentorFourProof",
-    about: "prototypeSampleMentorFourAbout",
-    availability: "prototypeSampleMentorFourAvailability",
-  },
-};
-
-function localizeMentor(mentor: Mentor, t: ReturnType<typeof useTranslations>) {
-  const copy = mentorCopyKeys[mentor.id];
-  return {
-    ...mentor,
-    study: t(copy.study),
-    city:
-      mentor.city === "Almaty" ? t("prototypeAlmaty") : t("prototypeAstana"),
-    proof: t(copy.proof),
-    about: t(copy.about),
-    availability: t(copy.availability),
-  };
-}
-
 const initialRequests = (
   t: ReturnType<typeof useTranslations>,
 ): PrototypeRequest[] => [
@@ -197,14 +84,6 @@ const initialRequests = (
     person: t("brand"),
     date: t("prototypeStatusReview"),
   },
-];
-
-const skillFilters: SkillFilter[] = [
-  "all",
-  "Design",
-  "Data",
-  "Programming",
-  "Video",
 ];
 
 const iconForScreen = {
@@ -845,111 +724,25 @@ export function PrototypeApp() {
           )}
 
           {screen === "explore" && (
-            <section className={styles.exploreScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeSearchTitle")}</h1>
-                </div>
-              </div>
-              {isDemoMode ? (
-                <>
-                  <div className={styles.searchBar}>
-                    <Search size={19} />
-                    <input
-                      aria-label={t("prototypeSearchPlaceholder")}
-                      placeholder={t("prototypeSearchPlaceholder")}
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                    />
-                    <button
-                      onClick={() => setSearch("")}
-                      aria-label={t("prototypeClearSearchAction")}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className={styles.exploreToolbar}>
-                    <div
-                      className={styles.filterList}
-                      role="group"
-                      aria-label={t("prototypeFilterBySkill")}
-                    >
-                      {skillFilters.map((item) => (
-                        <button
-                          key={item}
-                          className={filter === item ? styles.filterActive : ""}
-                          onClick={() => setFilter(item)}
-                        >
-                          {item === "all"
-                            ? t("prototypeFilterAll")
-                            : item === "Design"
-                              ? t("prototypeFilterDesign")
-                              : item === "Data"
-                                ? t("prototypeFilterData")
-                                : item === "Programming"
-                                  ? t("prototypeFilterCode")
-                                  : t("prototypeFilterVideo")}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      className={`${styles.filterButton} ${savedOnly ? styles.savedFilterActive : ""}`}
-                      aria-pressed={savedOnly}
-                      onClick={() => setSavedOnly((value) => !value)}
-                    >
-                      <span>
-                        <Heart size={16} /> {t("prototypeSaved")}
-                      </span>
-                      <span>{favoriteIds.length}</span>
-                    </button>
-                  </div>
-                  <div className={styles.resultCaption}>
-                    {visibleMentors.length} {t("prototypeSampleProfileCount")}{" "}
-                    <span>·</span> {t("prototypeOnlyReviewedSkills")}
-                  </div>
-                  <div className={styles.mentorList}>
-                    {visibleMentors.map((mentor) => (
-                      <MentorRow
-                        key={mentor.id}
-                        mentor={mentor}
-                        favorite={favoriteIds.includes(mentor.id)}
-                        onFavorite={() => toggleFavorite(mentor.id)}
-                        onOpen={() => openMentor(mentor)}
-                      />
-                    ))}
-                  </div>
-                  {visibleMentors.length === 0 && (
-                    <div className={styles.emptyState}>
-                      <Search size={23} />
-                      <h2>{t("prototypeEmptyMentorSearch")}</h2>
-                      <p>{t("prototypeEmptyMentorSearchHint")}</p>
-                      <button
-                        className={styles.secondaryButton}
-                        onClick={() => {
-                          setSearch("");
-                          setFilter("all");
-                          setSavedOnly(false);
-                        }}
-                      >
-                        {t("prototypeClearFilters")}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className={styles.emptyState}>
-                  <Search size={23} />
-                  <h2>{t("prototypeNoMentorsYet")}</h2>
-                  <p>{t("prototypeNoMentorsYetText")}</p>
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("new-request")}
-                  >
-                    {t("prototypeDescribeTask")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
-            </section>
+            <PrototypeDiscovery
+              isDemoMode={isDemoMode}
+              search={search}
+              setSearch={setSearch}
+              filter={filter}
+              setFilter={setFilter}
+              savedOnly={savedOnly}
+              onToggleSaved={() => setSavedOnly((value) => !value)}
+              onClearFilters={() => {
+                setSearch("");
+                setFilter("all");
+                setSavedOnly(false);
+              }}
+              favoriteIds={favoriteIds}
+              visibleMentors={visibleMentors}
+              toggleFavorite={toggleFavorite}
+              openMentor={openMentor}
+              onNewRequest={() => openScreen("new-request")}
+            />
           )}
 
           {screen === "mentor-profile" && (
@@ -1550,76 +1343,6 @@ function InvitationCard({
   );
 }
 
-function MentorSkills({ skills }: { skills: readonly string[] }) {
-  const t = useTranslations();
-  return (
-    <dl className={styles.mentorSkills}>
-      <dt>{t("prototypeCanHelpWith")}</dt>
-      <dd>
-        <ul>
-          {skills.map((skill) => (
-            <li key={skill}>{skill}</li>
-          ))}
-        </ul>
-      </dd>
-    </dl>
-  );
-}
-
-function MentorRow({
-  mentor,
-  favorite,
-  onFavorite,
-  onOpen,
-}: {
-  mentor: Mentor;
-  favorite: boolean;
-  onFavorite: () => void;
-  onOpen: () => void;
-}) {
-  const t = useTranslations();
-  const localizedMentor = localizeMentor(mentor, t);
-  const avatarClass =
-    styles[`avatar${capitalize(mentor.color)}` as keyof typeof styles];
-  return (
-    <article className={styles.mentorRow}>
-      <span className={`${styles.avatarLarge} ${avatarClass}`}>
-        {mentor.initials}
-      </span>
-      <div className={styles.mentorRowMain}>
-        <div className={styles.mentorNameLine}>
-          <h2>{mentor.name}</h2>
-          <span className={styles.verifiedLine}>
-            <ShieldCheck size={15} /> {t("prototypeProfileVerifiedMock")}
-          </span>
-        </div>
-        <p>
-          {localizedMentor.study} · {localizedMentor.city}
-        </p>
-        <MentorSkills skills={mentor.skills} />
-        <div className={styles.mentorAvailability}>
-          <CalendarDays size={15} /> {t("prototypeAvailable")}:{" "}
-          <strong>{localizedMentor.availability}</strong>
-        </div>
-      </div>
-      <div className={styles.mentorRowActions}>
-        <button
-          className={`${styles.favoriteButton} ${favorite ? styles.favoriteActive : ""}`}
-          onClick={onFavorite}
-          aria-label={
-            favorite ? t("prototypeUnsaveMentor") : t("prototypeSaveMentor")
-          }
-        >
-          <Heart size={18} fill={favorite ? "currentColor" : "none"} />
-        </button>
-        <button className={styles.secondaryButton} onClick={onOpen}>
-          {t("prototypeViewProfile")} <ArrowRight size={15} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
 function SettingToggle({
   title,
   detail,
@@ -1648,8 +1371,4 @@ function SettingToggle({
       </button>
     </div>
   );
-}
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }

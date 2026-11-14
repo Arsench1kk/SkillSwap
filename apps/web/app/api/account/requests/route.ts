@@ -4,10 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/client";
-import {
-  accountParticipants,
-  learnerRequests,
-} from "@/db/schema";
+import { accountParticipants, learnerRequests } from "@/db/schema";
 import { allowRateLimitedAttempt } from "@/domain/rate-limit";
 import {
   contactIsValid,
@@ -102,7 +99,11 @@ export async function POST(request: Request) {
     });
     if (result.status === "ineligible")
       return NextResponse.json(
-        { status: result.status, reason: result.reason, requestId: result.requestId },
+        {
+          status: result.status,
+          reason: result.reason,
+          requestId: result.requestId,
+        },
         { status: 200 },
       );
 
@@ -122,9 +123,6 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: "request_unavailable" },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "request_unavailable" }, { status: 503 });
   }
 }

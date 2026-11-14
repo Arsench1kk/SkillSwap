@@ -1,17 +1,17 @@
 # D1 — Арсен: исходящие передачи
 
 Файл ведут Арсен и его агент. [Общий протокол](../HANDOFFS.md).
-Статусы ниже проверены в GitHub **4 ноября 2026**; перед использованием сверять
-текущий PR и head SHA. Получение этой документации не добавляет feature-код в main.
+Статусы D1-H001–H004, D1-H006 и D1-H008 сверены в GitHub **14 ноября 2026**.
+Перед использованием сверяйте статус PR и head SHA.
 
 <a id="d1-h001"></a>
 
 ## D1-H001 — аккаунт, активная роль и anonymised participant
 
 - **Адресаты:** D2 Руслан, D3 Амир, D4 Нурлан, D5 Тогжан, D6 Андрей.
-- **Статус:** open / draft, не merged. [PR №1](https://github.com/Arsench1kk/SkillSwap/pull/1).
-- **Ветка:** `codex/arsen-platform`; **head SHA:** `f447bd349ee73ff668ee405fa9f6e5b7fc5692e6`.
-- **Base:** `main`; основа кода `26ed37dcf25752564365db3cf857993dfb526cf5`.
+- **Статус:** объединён в `main` коммитом `aa2cd48528cf701504a0f6913f2f8d64131b358b`. [PR №1](https://github.com/Arsench1kk/SkillSwap/pull/1).
+- **Ветка:** `codex/arsen-platform`; **head SHA:** `1ff09c4d1ab904cf3216a890aeb7c4005a94198b`.
+- **Base:** `main`; после объединения PR №7 получен коммит `3bb48a496eb586eeaf880dcf411342a2abc9b119`.
 - **Контракт:** `apps/web/src/lib/account-session.ts` → `requireAccountSession`;
   `apps/web/src/domain/account-participants.ts` → `findAccountParticipant`,
   `ensureAccountParticipant`, `AccountAccessError`; `apps/web/src/db/types.ts` →
@@ -26,7 +26,7 @@
   helper; правила R05/R06/R08 не решены этим PR. При withdrawn повторный `ensure`
   не создаёт замену и не восстанавливает согласие.
 - **Проверки:** 69 unit/integration, lint, typecheck и build на отдельной локальной
-  БД; настоящие Better Auth sessions, одновременное создание и rollback. Реальная
+  БД на исходной версии. На обновлённой базе локально прошли 108 тестов, миграции, format:check, lint, typecheck и сборка. [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43595749671) прошёл. Реальная
   доставка писем не проверялась; production не менялся. Зависимостей/миграций нет.
 
 <a id="d1-h002"></a>
@@ -35,9 +35,9 @@
 
 - **Адресаты:** D2, D3; также D4, D5, D6 для event context и транзакций.
 - **Статус:** open / draft, не merged. [PR №2](https://github.com/Arsench1kk/SkillSwap/pull/2).
-- **Ветка:** `codex/arsen-recorded-transitions`; **head SHA:** `95a4aa0ddbb005fb679e8fb2b9654421e02f3f32`.
-- **Base/зависимость:** `codex/arsen-platform`, PR №1 / D1-H001. После объединения
-  №1 перенаправить PR и повторить проверки; не считать его уже направленным в main.
+- **Ветка:** `codex/arsen-recorded-transitions`; **head SHA:** `16568fc35bd5aa385fe6046f5e65ba459483bcbb`.
+- **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
+  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
 - **Контракт:** `apps/web/src/domain/state-machines.ts` → необязательный пятый
   аргумент `{ input: EventInput }` в `transitionLearnerRequest`/
   `transitionMentorBrief`; `events.ts` → строгий `validateEventContext`;
@@ -60,8 +60,9 @@
 
 - **Адресаты:** D2, D3, D4, D5, D6.
 - **Статус:** open / draft, не merged. [PR №3](https://github.com/Arsench1kk/SkillSwap/pull/3).
-- **Ветка:** `codex/arsen-private-links`; **head SHA:** `8f53d2de9ffb46e95b50472f7bf4df60f9ad7275`.
-- **Base/зависимость:** PR №1 / D1-H001. От PR №2 не зависит.
+- **Ветка:** `codex/arsen-private-links`; **head SHA:** `ffc108aab5d007750b606d5c3aaed35a31fb2546`.
+- **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
+  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
 - **Контракт:** `apps/web/src/domain/private-links.ts` → прежние
   `createPrivateLink`, `verifyPrivateLink`, `revokePrivateLink` с общей валидацией.
 - **Действие:** передавать реальные UUID сущностей либо anonymised participant ID
@@ -81,8 +82,9 @@
 
 - **Адресаты:** D2, D3, D4, D5, D6.
 - **Статус:** open / draft, не merged. [PR №4](https://github.com/Arsench1kk/SkillSwap/pull/4).
-- **Ветка:** `codex/arsen-rate-limit`; **head SHA:** `e0437f9625bb5b8fcf9fc5fcc8637f144b67841e`.
-- **Base/зависимость:** PR №1 / D1-H001. От PR №2/№3 не зависит.
+- **Ветка:** `codex/arsen-rate-limit`; **head SHA:** `6278edb1a24b2f83cc49ae43b8c373793aeeda92`.
+- **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
+  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
 - **Контракт:** `apps/web/src/domain/rate-limit.ts` →
   `allowRateLimitedAttempt`, общий `RateLimitScope`.
 - **Действие:** использовать существующие scope, непустой серверный ключ,
@@ -114,7 +116,7 @@
   заметки не требуется объединять исходный Draft-код.
 - **Ограничения:** инструкции нужно получить из актуального репозитория и
   перечитать в уже открытой сессии. Журналы не рассылают уведомления сами и не
-  заменяют проверку реального PR/его head SHA. Код PR №1–4 остаётся в их ветках.
+  заменяют проверку реального PR/его head SHA. Актуальные статусы PR указаны в соответствующих записях.
 - **Проверки:** ссылки/anchors, импорты, все шесть точек входа и Prettier.
   Приложение, зависимости и БД не менялись; его тесты для документации не повторялись.
 
@@ -126,11 +128,9 @@
 - **Проверено:** 4 ноября 2026. **Статус:** Draft, код не объединён в main.
 - **PR:** [№5](https://github.com/Arsench1kk/SkillSwap/pull/5).
   Ветка `codex/arsen-auth-recovery`, полный head SHA
-  `14bc587a1bbf0476c21fe9eb61cd10280166e75e`.
-- **Base и зависимости:** `codex/arsen-platform`, PR №1, SHA
-  `f447bd349ee73ff668ee405fa9f6e5b7fc5692e6`. Ветка также содержит инструкции
-  координации из main `43a9a7ffcc4c947cdc19882b7c0e0ffe11b33eac`; это не
-  объединение feature-кода в main. После №1 перенаправить PR №5 в main и проверить CI.
+  `3d14aa3e2eddec702ec1c7c5f71b0a8db5d6d4c0`.
+- **Base:** `main` на `aa2cd48528cf701504a0f6913f2f8d64131b358b`.
+  PR №1 входит в базу. Ветка обновлена, GitHub CI запущен.
 - **Контракт:** `apps/web/src/lib/auth.ts` — `auth` по-прежнему использует Better
   Auth и Drizzle. Явно задан `advanced.disableOriginCheck: false`, включая тестовый
   режим библиотеки; production-политика доверенных URL прежняя. Ошибка HTTP Resend
@@ -163,6 +163,77 @@
   AUTH-1–4, G0 или решений R05/R06/R08/R10. Запись публикуется отдельно в main;
   прикладной код остаётся в Draft PR №5.
 
+<a id="d1-h007"></a>
+
+## D1-H007 — контакты в метаданных событий
+
+- **Автор:** D1 / Арсен. **Адресаты:** D2–D6.
+- **Проверено:** 4 ноября 2026. **Статус:** Draft, код не объединён в main.
+- **PR:** [№6](https://github.com/Arsench1kk/SkillSwap/pull/6).
+  Ветка `codex/arsen-event-privacy`, полный head SHA
+  `721e14d4cd13621c185c9caf40997b7f048e078e`.
+- **Base и зависимости:** `codex/arsen-recorded-transitions`, PR №2, SHA
+  `95a4aa0ddbb005fb679e8fb2b9654421e02f3f32`, изначально. PR №1 уже в `main`; текущий head PR №2 указан в D1-H002.
+  Включена документация main `e0433afa5177fb2c74bdfeeb5420f1ee0726cf80`;
+  это не объединение прикладного кода. После зависимостей перенаправить в main и
+  повторить CI.
+- **Контракт:** `apps/web/src/domain/events.ts` — `validateEventInput` проверяет
+  контакты в `note`, `reasonCode`, `sourceChannel` до SQL внутри `recordEvent`.
+  `containsContactData` дополнительно распознаёт handle после пунктуации и прямые
+  ссылки `t.me`, `telegram.me`, `wa.me`. Сигнатуры и действующие коды не менялись.
+- **Действие получателя:** передавать только неидентифицирующие коды; не помещать
+  контакт в `reasonCode` или номер телефона в `sourceChannel`. Обработать ошибку
+  валидации обычным механизмом своего endpoint; `recordEvent` вызывать в транзакции
+  действия, чтобы отказ откатывал его состояние. Не дублировать фильтр в фичах.
+  D3/D4/D5: общий predicate уже вызывается в `app/api/brief/action/route.ts`,
+  `app/api/rating/route.ts`, `app/api/report/route.ts`; новые форматы отклоняются
+  и этими существующими проверками. Реализация чужих endpoints не редактировалась.
+- **Проверки:** отдельная локальная synthetic БД
+  `skillswap_d1_event_privacy_20261104`, чистые миграции, все 138 unit/integration
+  тестов (38 новых), lint, typecheck, Prettier изменённых файлов и
+  `git diff --check` прошли. Проверены отказ до SQL, отсутствие события и откат
+  domain write в общей транзакции. В полном E2E — 52/55; три сценария упали по
+  таймауту загрузки, затем все три прошли отдельным последовательным прогоном
+  (7.8 секунды), без изменения кода или таймаутов. Это не стабильный зелёный
+  полный прогон/CI. В dev остаётся предупреждение Turbopack о `@theme`.
+  Production build не повторялся: Next/UI и зависимости не менялись.
+- **Ограничения:** эвристика не гарантирует обнаружения имён, замаскированных
+  контактов, произвольных URL и всех форм PII. `templateVersion`, прямые SQL-вставки
+  и отдельный `stateTransitions.reasonCode` данным PR не защищаются. Для metadata
+  сохраняется прежняя эвристика телефона; числовые коды, похожие на телефон,
+  отклоняются. Новые enum/закрытые reason codes не вводятся: R10 остаётся открытым.
+  Старые append-only события не переписываются. Нет новых зависимостей/миграций/UI.
+  G0 и остальные продуктовые решения не закрыты. Передача опубликована отдельно
+  в main; код остаётся в Draft PR №6.
+
+<a id="d1-h008"></a>
+
+## D1-H008 — форматирование общей базы G0
+
+- **Автор:** D1 / Арсен. **Адресаты:** D6 для ревью, D2–D5 и D1 для обновления веток.
+- **Проверено:** 14 ноября 2026. **Статус:** объединён в `main` коммитом `3bb48a496eb586eeaf880dcf411342a2abc9b119`.
+  [PR №7](https://github.com/Arsench1kk/SkillSwap/pull/7).
+  Ветка `codex/g0-format`, head SHA `c8876c51549a9aa0ff37b089b76cfe8e7236b48a`.
+- **Base:** `main`, SHA `435344c1e09b3fa09f99b82e90ed5c7064dbab64`.
+  Prettier применён к 27 файлам `apps/web` поверх коммита D2.
+  Правки Руслана сохранены. Предыдущий head `c5ddf02` входит в историю ветки.
+- **Действие:** PR №1 объединён. PR №2–5 обновлены из `main`. Конфликт PR №5
+  в `apps/web/src/lib/auth.ts` разрешён с сохранением исправлений почты.
+  PR №6 зависит от №2. Остальные ветки обновлять с учётом их баз.
+- **Проверки:** Prettier debug-check, полный format:check, lint, typecheck,
+  diff-check, миграции и 89 тестов на временном PostgreSQL прошли. Один сценарий
+  помечен TODO. Содержимое JSON метаданных Drizzle совпадает после парсинга.
+  Новых зависимостей нет. [GitHub CI для PR №7](https://github.com/Arsench1kk/SkillSwap/pull/7/checks).
+- **Подготовка D1 на предыдущей базе:** локально PR №1 объединился с PR №7
+  на `c5ddf02` без конфликтов.
+  Прошли миграции на отдельном PostgreSQL, 69 тестов, форматирование, lint,
+  typecheck и production build. В общей локальной сборке PR №1–6 поверх PR №7
+  прошли миграции, 196 тестов, форматирование, lint и typecheck. Единственный
+  конфликт был в `apps/web/src/lib/auth.ts`. Форматирование G0 совпадает с
+  форматированием PR №5, поэтому в локальной проверке сохранён вариант PR №5
+  с его правками проверки origin и ошибок почты. Эти объединения были локальными.
+  Актуальные статусы PR указаны в соответствующих записях.
+
 ## Совместная проверка и общие ограничения
 
 Четыре блока объединены только в локальной ветке `codex/arsen-integration-check`:
@@ -170,11 +241,22 @@
 проверки не опубликована и не заменяет порядок реального объединения PR.
 Счётчики 69/100/91/93 относятся к разным веткам и не складываются.
 
-Общий долг форматирования 26 файлов и G0 не закрыты. Это не блокирует всю работу
+Форматирование общей базы объединено в PR №7. Этап G0 ещё открыт. Это не блокирует всю работу
 каждого участника: отделять зависимые части от независимых. Изменения контрактов
 сверять по head SHA; локальные результаты не являются результатом GitHub CI.
 
 ## Прочитанные и применённые передачи
 
-Пока нет отметок о применении передач других участников. Это не подтверждение,
-что коллеги прочитали или подключили D1-H001–D1-H004.
+- [D4-H001](https://github.com/Arsench1kk/SkillSwap/pull/9) — reviewed 13 ноября 2026. Проверен [PR №8](https://github.com/Arsench1kk/SkillSwap/pull/8) на
+  `de5b05bbec9c91787bf1ae106c5b25f2e47a2c3f`. Страница и API L5 используют
+  `isRatingWindowOpen({ endsAt, completionState }, now)`. При интеграции D1
+  передавать оба поля. Для допуска нужны завершённая встреча и время окончания.
+  Expiry возвращает число обновлённых строк, повтор без новой работы возвращает 0.
+  D1 проверил контракт локально с PR №1–6 и форматированием №7. PR №8
+  объединился с этой сборкой без конфликта. Миграции и 213 тестов на отдельном
+  PostgreSQL 16, включая opt-in SQL тест expiry, прошли без пропусков.
+  Прошли семь браузерных сценариев L5, format:check, lint и typecheck.
+  Конкуренция между отправкой отзыва и expiry, scheduler и полный E2E
+  остаются вне этого прогона. Код в PR №8 остаётся Draft. После объединения
+  форматирования №7 D4 может обновить свою ветку и повторить CI. A04 и R07
+  остаются отдельным этапом.

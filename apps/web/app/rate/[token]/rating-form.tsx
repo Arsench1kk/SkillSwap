@@ -108,7 +108,10 @@ export function RatingForm({
           {error}
         </p>
       )}
-      <button className="ui-button ui-button-primary request-submit" disabled={busy}>
+      <button
+        className="ui-button ui-button-primary request-submit"
+        disabled={busy}
+      >
         {busy ? messages.requestWorking : messages.ratingSubmit}
       </button>
     </form>

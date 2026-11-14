@@ -17,8 +17,8 @@
 - **Ветка:** `codex/nurlan-sessions-a05`. **Head прикладного кода:**
   `75d6652265b67687b96953f56a5de944bc71faa9`.
   A05 отдельно: `1627c08`; expiry: `75d6652`.
-  Published PR head after D4-H004:
-  `63a098ccfb5dd6c683d6f01366cf8a9a1197bdba`.
+  Published PR head after D4-H005:
+  `7a2359f1733d83a905f89edb76110f8a25265f2a`.
 - **Base:** main `601efb5` (получена актуальная документация команды). Draft PR D1 №1–6 не объединялись в эту ветку.
 - **Контракт:** `apps/web/src/domain/rating-page.ts` → `isRatingWindowOpen`
   принимает `{ endsAt, completionState }` и необязательный `now`.
@@ -224,3 +224,72 @@ of time не создаёт completed/no_show.
 источник фактического времени и конкретные новые endpoints намеренно не придуманы.
 Пока ответы не приняты, D4 продолжает независимые регрессии, но не создаёт новый
 lifecycle по собственным предположениям.
+
+<a id="d4-h005"></a>
+
+## D4-H005 — завершение независимых исправлений L4/L5 и реальные E2E
+
+- **Автор:** D4 / Нурлан. **Адресаты:** D1, D2, D3, D5, D6.
+- **Проверено:** 14 ноября 2026. **Статус:** дополнение Draft PR №8;
+  передача через отдельный PR №9, доставка в main ожидает его объединения.
+- **Ветка:** `codex/nurlan-sessions-a05`. **Head прикладных изменений:**
+  `045a32abe842e28be2ec06f69fd77891e4b1ae7e`.
+  Получен опубликованный main `435344c` без конфликтов, merge `0337d6c`.
+  Это обновление базы, не самостоятельное редактирование D2-файлов.
+- **L5:** `apps/web/app/rate/[token]/rating-form.tsx`, commit `00a13de`.
+  Read-only outcome попадает в FormData; раньше повторно отправлялся и блокировал
+  завершение partial ответом 409. Теперь отправляются только новые поля.
+  Если ничего нового нет, используется существующий ratingAtLeastOne.
+  Браузерный тест падал на наличии уже сохранённого outcome в payload до исправления;
+  после исправления проходят реальная запись оставшихся оценок и thank-you.
+- **L4:** `apps/web/app/session/[token]/session-actions.tsx`, commit `b3d0b09`.
+  Start fetch теперь обрабатывает и network failure, и неуспешный HTTP; показывает
+  существующий sessionActionError и не создаёт unhandled rejection.
+  Внешний переход Meet сохраняется. Клик не трактуется как подтверждённое
+  присутствие, completion/no_show не добавлялись.
+- **Собственные E2E:** `apps/web/e2e/sessions/l5.spec.ts` — 10 сценариев 360px.
+  Реальные сервер/БД/token/API/recordEvent, кроме явно прерываемого запроса
+  сетевого теста; внешний Meet заменён synthetic HTML в browser routing.
+  Покрыты partial со старым outcome, отсутствие новых ответов, network retry
+  с сохранением введённого и клавиатурой, ранняя ссылка, partial_expired read-only,
+  обе роли L4, отсутствие Meet, повтор start без дубликата события, keyboard cancel,
+  ошибки start network/503, ошибка cancel без ложного успеха и успешный retry.
+  Проверены значения БД и реальные события. Fixtures — SQL в отдельной test DB;
+  они не доказывают production-цепочку создания встреч/feedback.
+- **Проверки на актуальной базе:** существующие миграции успешно применены
+  в отдельную `skillswap_d4_browser_20261114` на временном PostgreSQL 18.6.
+  Полный Vitest с DATABASE_URL и SKILLSWAP_D4_TEST_DATABASE_URL: **135 passed,
+  без skips, 2 TODO** (A04 и существующая независимая задача D2).
+  Playwright новые 10 + прежние 9 L4/L5: **19 passed**, Chromium, 360px.
+  Typecheck, lint, изменённые файлы Prettier и diff-check успешны.
+  Production build после правок прошёл с синтетическими BETTER_AUTH_SECRET/URL
+  и выделенной БД. Изначальное предупреждение default auth secret устранено
+  только настройкой тестового окружения, без изменения auth-файлов.
+- **Визуальная проверка:** снимок 360px просмотрен, обрезания/горизонтального
+  переполнения не обнаружено; keyboard focus/retry/cancel проверены браузером.
+  Дизайн/строки не менялись. Impeccable отсутствует в установленной рабочей копии
+  (несмотря на историческую заметку RESOURCES), critique/detector не запускались.
+  Dev выдаёт существующее предупреждение @theme общего CSS — файл D6 не менялся.
+  Общий format:check всё ещё падает на 26 чужих файлах; свой rating-form теперь
+  отформатирован. PR №7 пока не merged, зелёный общий GitHub CI не заявляется.
+- **Действие D6:** запустить E2E с одинаковыми DATABASE_URL и
+  SKILLSWAP_D4_TEST_DATABASE_URL, SKILLSWAP_DATA_ORIGIN=rehearsal,
+  тестовыми auth secret/URL: `npm run e2e -- e2e/sessions/l5.spec.ts --workers=1`.
+  Использовать отдельную migrated DB. Не направлять fixture-тесты на рабочую БД.
+  Fixture-строки остаются в disposable test DB. Новых app dependencies нет;
+  Chromium установлен как тестовый инструмент, PNG/logs не входят в commit.
+
+## Остаток D4 после независимой проверки — кто нужен дальше
+
+| Остаток                          | Что уже подготовил D4                                                 | Следующий необходимый контракт/решение                                                                        |
+| -------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| R07 lifecycle                    | Варианты D4-R07-P01, матрица/регрессии                                | Владелец продукта + D2/D3/D5 выбирают правила; D6 фиксирует UX, D1 контракты                                  |
+| A04 exact session                | Реальное воспроизведение для обеих ролей, D4-H003                     | D1 recipient/session token и legacy policy R07; после передачи реализация в D4                                |
+| Создание session/feedback        | Требование caller tx, одна session на match; точка D2 confirm изучена | С D1/D2 согласовать versioned tx/service contract и lifecycle; D4 пишет сервис, D2 подключает confirm         |
+| Cancellation/completion/no_show  | Существующие start/cancel и retries проверены реальным API            | R07 + operator guard D1 + оркестрация D5; не угадывать source duration/новые terminal transitions             |
+| Upcoming/history и account UI    | Ограничения и области D4 зафиксированы                                | Передача sessions блока из shell в G0 от D1 и утверждённый UX/ключи D6                                        |
+| Jobs и перенос expiry entrypoint | Expiry SQL/retry/конкуренция проверены; entrypoint пока src/db        | Согласованная передача entrypoint D1 и package script/scheduler D6; остальные cadence по R11 с D5             |
+| Релизная интеграция              | Свежий main получен, полный PG suite, L4/L5 E2E и build проверены     | Ревью/merge PR №7/№8/№9; после G0 обновить базу/CI; реальный scheduler/full workflow остаются общими задачами |
+
+Продуктовые решения и принятие передачи за коллег не отмечались. Чужие schema,
+config, message catalogs, shell и operator/learner implementation D4 не менял.

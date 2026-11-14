@@ -64,6 +64,67 @@ export function learnerRecoveryState(
   return null;
 }
 
+export const NO_MATCH_AFTER_MS = 24 * 60 * 60 * 1000;
+
+type StatusMatch = {
+  status: string;
+  humanDecision: string;
+  mentorAcceptedAt: Date | null;
+  learnerAcceptedAt: Date | null;
+  proposedSlotAt: Date | null;
+  sessionCompletionState?: string | null;
+};
+
+/**
+ * Maps the database state of a request (learner_request_status enum) and its
+ * newest match to the screen state of L2/L3. Request, match and brief
+ * statuses are different things: only `requestStatus` is the request status.
+ * Terminal request states (cancelled, ineligible, expired) are handled by the
+ * caller before this runs.
+ */
+export function deriveLearnerStatusState(input: {
+  requestStatus: string;
+  requestCreatedAt: Date;
+  match?: StatusMatch;
+  now: Date;
+}): {
+  state: LearnerStatusPageData["state"];
+  isConfirmed: boolean;
+  isReadyToConfirm: boolean;
+} {
+  const { requestStatus, match, now } = input;
+  const isConfirmed =
+    match?.status === "accepted" &&
+    match.learnerAcceptedAt !== null &&
+    match.mentorAcceptedAt !== null;
+  const isReadyToConfirm =
+    requestStatus === "matched" &&
+    match?.humanDecision === "accepted" &&
+    match.status === "proposed" &&
+    match.mentorAcceptedAt !== null &&
+    match.proposedSlotAt !== null;
+
+  const recovery = learnerRecoveryState(
+    requestStatus,
+    match?.status,
+    match?.humanDecision,
+    match?.sessionCompletionState,
+  );
+  if (recovery) return { state: recovery, isConfirmed, isReadyToConfirm };
+  if (isConfirmed) return { state: "confirmed", isConfirmed, isReadyToConfirm };
+  if (isReadyToConfirm)
+    return { state: "matched", isConfirmed, isReadyToConfirm };
+  const waitedTooLong =
+    now.getTime() - input.requestCreatedAt.getTime() >= NO_MATCH_AFTER_MS &&
+    ["eligible", "matching"].includes(requestStatus);
+  return {
+    state:
+      requestStatus === "no_match" || waitedTooLong ? "no_match" : "waiting",
+    isConfirmed,
+    isReadyToConfirm,
+  };
+}
+
 export async function getLearnerStatusPage(
   token: string,
 ): Promise<LearnerStatusPageData> {
@@ -109,37 +170,24 @@ export async function getLearnerStatusPage(
     .orderBy(desc(matches.createdAt))
     .limit(1);
 
-  const isConfirmed =
-    match?.status === "accepted" &&
-    match.learnerAcceptedAt !== null &&
-    match.mentorAcceptedAt !== null;
-  const isReadyToConfirm =
-    request.status === "matched" &&
-    match?.humanDecision === "accepted" &&
-    match.status === "proposed" &&
-    match.mentorAcceptedAt !== null &&
-    match.proposedSlotAt !== null;
-
-  const distinctStatus = learnerRecoveryState(
-    request.status,
-    match?.status,
-    match?.humanDecision,
-    match?.sessionCompletionState,
-  );
+  const { state, isConfirmed, isReadyToConfirm } = deriveLearnerStatusState({
+    requestStatus: request.status,
+    requestCreatedAt: request.createdAt,
+    match: match
+      ? {
+          status: match.status,
+          humanDecision: match.humanDecision,
+          mentorAcceptedAt: match.mentorAcceptedAt,
+          learnerAcceptedAt: match.learnerAcceptedAt,
+          proposedSlotAt: match.proposedSlotAt,
+          sessionCompletionState: match.sessionCompletionState,
+        }
+      : undefined,
+    now: new Date(),
+  });
 
   const base: LearnerStatusPageData = {
-    state:
-      distinctStatus ??
-      (isConfirmed
-        ? "confirmed"
-        : isReadyToConfirm
-          ? "matched"
-          : request.status === "no_match" ||
-              (Date.now() - request.createdAt.getTime() >=
-                24 * 60 * 60 * 1000 &&
-                ["eligible", "matching"].includes(request.status))
-            ? "no_match"
-            : "waiting"),
+    state,
     token,
     task: request.taskDescription,
     deadline: formatKazakhstanTime(request.deadlineAt, "en"),

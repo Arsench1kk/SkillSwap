@@ -142,36 +142,26 @@ async function MentorBriefContent({
         <header className="brief-header">
           <h1>{t("briefTitle")}</h1>
           <div className="brief-task-card">
-            <p className="brief-task-label">
-              {t("briefTask")}
-            </p>
+            <p className="brief-task-label">{t("briefTask")}</p>
             <p className="brief-task">{brief.taskDescription}</p>
           </div>
         </header>
 
         <dl className="brief-facts">
           <div className="brief-fact">
-            <dt>
-              {t("briefAlreadyTried")}
-            </dt>
+            <dt>{t("briefAlreadyTried")}</dt>
             <dd>{brief.triedAlready}</dd>
           </div>
           <div className="brief-fact">
-            <dt>
-              {t("briefDeadline")}
-            </dt>
+            <dt>{t("briefDeadline")}</dt>
             <dd>{brief.deadline}</dd>
           </div>
           <div className="brief-fact">
-            <dt>
-              {t("briefTimeBox")}
-            </dt>
+            <dt>{t("briefTimeBox")}</dt>
             <dd>{t("briefTimeBoxValue")}</dd>
           </div>
           <div className="brief-fact">
-            <dt>
-              {t("briefGiveBack")}
-            </dt>
+            <dt>{t("briefGiveBack")}</dt>
             <dd>{brief.giveBack || t("briefGiveBackMissing")}</dd>
           </div>
         </dl>

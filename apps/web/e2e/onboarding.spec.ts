@@ -12,9 +12,15 @@ test("welcome explains SkillSwap and preserves the no-account request path", asy
     }),
   ).toBeVisible();
   await expect(page.getByText(/team reviews it/i)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "A clear next step, together" })).toBeVisible();
-  await expect(page.getByText("An example of a two-way skill exchange")).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Main navigation" })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "A clear next step, together" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("An example of a two-way skill exchange"),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation", { name: "Main navigation" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /send a request/i }),
   ).toHaveAttribute("href", "/request");
@@ -136,7 +142,9 @@ test("login preserves fields and shows a safe API error", async ({ page }) => {
   await expect(page.getByLabel("Email address")).toHaveValue(
     "student@example.edu",
   );
-  await expect(page.getByLabel("Password", { exact: true })).toHaveValue("wrong-password");
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue(
+    "wrong-password",
+  );
 });
 
 test("unverified login offers a resend action", async ({ page }) => {
@@ -162,7 +170,9 @@ test("unverified login offers a resend action", async ({ page }) => {
   await page.getByLabel("Email address").fill("student@example.edu");
   await page.getByLabel("Password", { exact: true }).fill("sample-password");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText(/this account needs email verification/i)).toBeVisible();
+  await expect(
+    page.getByText(/this account needs email verification/i),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Resend verification email" }).click();
   await expect(
     page.getByText("A new verification email has been sent."),
@@ -214,7 +224,9 @@ test("workspace navigation collapses on desktop and opens as a dismissible mobil
   await expect(
     page.getByRole("navigation", { name: "Workspace navigation" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Close navigation", exact: true })
+    .click();
   await expect(
     page.getByRole("navigation", { name: "Workspace navigation" }),
   ).toBeHidden();

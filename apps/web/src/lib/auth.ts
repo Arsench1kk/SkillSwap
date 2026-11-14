@@ -11,7 +11,9 @@ import {
 } from "@/db/auth-schema";
 
 const authBaseUrl =
-  process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  process.env.BETTER_AUTH_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  "http://localhost:3000";
 const localEmailBypass =
   process.env.NODE_ENV === "development" &&
   process.env.AUTH_DEV_SKIP_EMAIL_VERIFICATION === "true" &&
@@ -44,7 +46,9 @@ async function sendResendEmail(input: {
 
   if (!response.ok) {
     const responseText = await response.text();
-    throw new Error(`Email provider returned ${response.status}: ${responseText}`);
+    throw new Error(
+      `Email provider returned ${response.status}: ${responseText}`,
+    );
   }
 }
 

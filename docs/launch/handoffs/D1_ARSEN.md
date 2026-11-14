@@ -9,9 +9,9 @@
 ## D1-H001 — аккаунт, активная роль и anonymised participant
 
 - **Адресаты:** D2 Руслан, D3 Амир, D4 Нурлан, D5 Тогжан, D6 Андрей.
-- **Статус:** open / draft, не merged. [PR №1](https://github.com/Arsench1kk/SkillSwap/pull/1).
-- **Ветка:** `codex/arsen-platform`; **head SHA:** `f447bd349ee73ff668ee405fa9f6e5b7fc5692e6`.
-- **Base:** `main`; основа кода `26ed37dcf25752564365db3cf857993dfb526cf5`.
+- **Статус:** открыт, Ready for review. [PR №1](https://github.com/Arsench1kk/SkillSwap/pull/1).
+- **Ветка:** `codex/arsen-platform`; **head SHA:** `1ff09c4d1ab904cf3216a890aeb7c4005a94198b`.
+- **Base:** `main`; после объединения PR №7 получен коммит `3bb48a496eb586eeaf880dcf411342a2abc9b119`.
 - **Контракт:** `apps/web/src/lib/account-session.ts` → `requireAccountSession`;
   `apps/web/src/domain/account-participants.ts` → `findAccountParticipant`,
   `ensureAccountParticipant`, `AccountAccessError`; `apps/web/src/db/types.ts` →
@@ -26,7 +26,7 @@
   helper; правила R05/R06/R08 не решены этим PR. При withdrawn повторный `ensure`
   не создаёт замену и не восстанавливает согласие.
 - **Проверки:** 69 unit/integration, lint, typecheck и build на отдельной локальной
-  БД; настоящие Better Auth sessions, одновременное создание и rollback. Реальная
+  БД на исходной версии. На обновлённой базе локально прошли 108 тестов, миграции, format:check, lint, typecheck и сборка. [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43595749671) прошёл. Реальная
   доставка писем не проверялась; production не менялся. Зависимостей/миграций нет.
 
 <a id="d1-h002"></a>
@@ -211,14 +211,13 @@
 ## D1-H008 — форматирование общей базы G0
 
 - **Автор:** D1 / Арсен. **Адресаты:** D6 для ревью, D2–D5 и D1 для обновления веток.
-- **Проверено:** 14 ноября 2026. **Статус:** открыт для ревью.
+- **Проверено:** 14 ноября 2026. **Статус:** объединён в `main` коммитом `3bb48a496eb586eeaf880dcf411342a2abc9b119`.
   [PR №7](https://github.com/Arsench1kk/SkillSwap/pull/7).
   Ветка `codex/g0-format`, head SHA `c8876c51549a9aa0ff37b089b76cfe8e7236b48a`.
 - **Base:** `main`, SHA `435344c1e09b3fa09f99b82e90ed5c7064dbab64`.
   Prettier применён к 27 файлам `apps/web` поверх коммита D2.
   Правки Руслана сохранены. Предыдущий head `c5ddf02` входит в историю ветки.
-- **Действие:** D6 проверяет отдельный diff форматирования. После объединения
-  обновить PR №1 из `main` и повторить CI. Затем обновлять остальные ветки
+- **Действие:** PR №1 обновлён из `main`. Остальные ветки обновлять
   с учётом их баз и сверять конфликты с владельцами. Для PR №5 отдельно
   проверить `apps/web/src/lib/auth.ts`, который изменён в обеих ветках.
 - **Проверки:** Prettier debug-check, полный format:check, lint, typecheck,
@@ -243,7 +242,7 @@
 проверки не опубликована и не заменяет порядок реального объединения PR.
 Счётчики 69/100/91/93 относятся к разным веткам и не складываются.
 
-Форматирование общей базы подготовлено в PR №7. Этап G0 ещё открыт. Это не блокирует всю работу
+Форматирование общей базы объединено в PR №7. Этап G0 ещё открыт. Это не блокирует всю работу
 каждого участника: отделять зависимые части от независимых. Изменения контрактов
 сверять по head SHA; локальные результаты не являются результатом GitHub CI.
 

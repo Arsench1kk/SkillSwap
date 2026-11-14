@@ -71,14 +71,12 @@ beforeEach(() => {
     set: () => ({ where: async () => undefined }),
   });
   mocks.recordEvent.mockReset();
-  mocks.verify
-    .mockReset()
-    .mockResolvedValue({
-      status: "valid",
-      purpose: "rating",
-      subjectType: "feedback",
-      subjectId: "feedback-1",
-    });
+  mocks.verify.mockReset().mockResolvedValue({
+    status: "valid",
+    purpose: "rating",
+    subjectType: "feedback",
+    subjectId: "feedback-1",
+  });
   mocks.rateLimit.mockReset().mockResolvedValue(true);
 });
 

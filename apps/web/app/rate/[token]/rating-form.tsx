@@ -55,7 +55,11 @@ export function RatingForm({
     setError("");
     const form = new FormData(event.currentTarget);
     const unblocked = form.get("unblocked");
-    const oneLineOutcome = String(form.get("outcome") ?? "").trim();
+    // Read-only inputs still appear in FormData. Send only unanswered fields.
+    const oneLineOutcome =
+      initial.oneLineOutcome === null
+        ? String(form.get("outcome") ?? "").trim()
+        : "";
     const trust = form.get("trust");
     if (unblocked === null && !oneLineOutcome && trust === null) {
       setError(messages.ratingAtLeastOne);
@@ -108,7 +112,10 @@ export function RatingForm({
           {error}
         </p>
       )}
-      <button className="ui-button ui-button-primary request-submit" disabled={busy}>
+      <button
+        className="ui-button ui-button-primary request-submit"
+        disabled={busy}
+      >
         {busy ? messages.requestWorking : messages.ratingSubmit}
       </button>
     </form>

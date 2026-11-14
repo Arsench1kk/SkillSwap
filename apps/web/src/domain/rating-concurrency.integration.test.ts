@@ -35,6 +35,7 @@ vi.mock("@/domain/events", () => ({
   recordEvent: (...args: unknown[]) => state.event(...args),
 }));
 import { POST } from "../../app/api/rating/route";
+import { getRatingPage } from "./rating-page";
 
 const connectionString = process.env.SKILLSWAP_D4_TEST_DATABASE_URL;
 function deferred() {
@@ -60,11 +61,11 @@ async function waitForBlock(
   }
   throw new Error("Expected PostgreSQL row-lock wait was not observed");
 }
-function submit() {
+function submit(payload: Record<string, unknown> = { trust: 5 }) {
   return POST(
     new Request("http://localhost/api/rating", {
       method: "POST",
-      body: JSON.stringify({ token: "a".repeat(43), trust: 5 }),
+      body: JSON.stringify({ token: "a".repeat(43), ...payload }),
     }),
   );
 }
@@ -80,6 +81,7 @@ describe.skipIf(!connectionString)(
       "rating commits first",
       "rating rolls back",
       "expiry commits first",
+      "partial answers and retries",
     ])(
       "%s",
       async (order) => {
@@ -147,6 +149,52 @@ describe.skipIf(!connectionString)(
             if (order === "rating rolls back")
               throw new Error("Injected event failure");
           });
+          if (order === "partial answers and retries") {
+            releaseEvent.resolve();
+            const snapshot = async () =>
+              (await observer.query("SELECT * FROM feedback")).rows[0];
+            const initial = await snapshot();
+            expect((await getRatingPage("a".repeat(43))).state).toBe("partial");
+            expect(await snapshot()).toEqual(initial);
+            expect((await submit()).status).toBe(200);
+            const saved = await snapshot();
+            expect(saved).toMatchObject({
+              unblocked: 4,
+              trust: 5,
+              trust_missing_reason: null,
+              outcome_missing_reason: "incomplete",
+            });
+            expect((await submit()).status).toBe(409);
+            expect(await snapshot()).toEqual(saved);
+            expect(
+              (await submit({ unblocked: 5, oneLineOutcome: "Replacement" }))
+                .status,
+            ).toBe(409);
+            expect(await snapshot()).toEqual(saved);
+            expect(
+              (await submit({ oneLineOutcome: "I can fix the formula" }))
+                .status,
+            ).toBe(200);
+            const complete = await snapshot();
+            expect(complete).toMatchObject({
+              unblocked: 4,
+              trust: 5,
+              one_line_outcome: "I can fix the formula",
+              outcome_missing_reason: null,
+            });
+            expect((await getRatingPage("a".repeat(43))).state).toBe(
+              "submitted",
+            );
+            expect((await submit()).status).toBe(409);
+            expect(await expireUnansweredFeedback(job as unknown as Pool)).toBe(
+              0,
+            );
+            expect(await snapshot()).toEqual(complete);
+            expect(
+              (await observer.query("SELECT * FROM rating_test_events")).rows,
+            ).toEqual([{ event_name: "trust_submitted", value: 5 }]);
+            return;
+          }
           if (order === "expiry commits first") {
             await job.query("BEGIN");
             expect(await expireUnansweredFeedback(job as unknown as Pool)).toBe(

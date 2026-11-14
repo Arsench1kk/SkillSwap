@@ -30,7 +30,6 @@ import {
   Settings,
   ShieldCheck,
   UserRound,
-  Video,
   X,
 } from "lucide-react";
 import type { MessageKey } from "@/messages/en";
@@ -38,6 +37,10 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { RequestForm } from "@/app/request/request-form";
 import { authClient } from "@/src/lib/auth-client";
 import { useLanguage, useTranslations } from "@/src/i18n/provider";
+import {
+  PrototypeSessions,
+  type PrototypeSessionTab,
+} from "@/features/sessions/prototype-sessions";
 import styles from "./prototype.module.css";
 
 type Role = "learner" | "mentor";
@@ -262,7 +265,7 @@ export function PrototypeApp() {
     Record<number, "pending" | "accepted" | "declined">
   >({ 1: "pending", 2: "pending" });
   const [toast, setToast] = useState("");
-  const [sessionTab, setSessionTab] = useState<"upcoming" | "past">("upcoming");
+  const [sessionTab, setSessionTab] = useState<PrototypeSessionTab>("upcoming");
   const [task, setTask] = useState("");
   const [deadline, setDeadline] = useState("2026-10-28");
   const [timeWindow, setTimeWindow] = useState<string>(
@@ -1199,112 +1202,13 @@ export function PrototypeApp() {
           )}
 
           {screen === "sessions" && (
-            <section className={styles.listScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeSessionsTitle")}</h1>
-                </div>
-              </div>
-              {isDemoMode ? (
-                <>
-                  <div className={styles.sessionTabs}>
-                    <button
-                      className={
-                        sessionTab === "upcoming" ? styles.sessionTabActive : ""
-                      }
-                      onClick={() => setSessionTab("upcoming")}
-                    >
-                      {t("prototypeUpcomingTab")} <span>1</span>
-                    </button>
-                    <button
-                      className={
-                        sessionTab === "past" ? styles.sessionTabActive : ""
-                      }
-                      onClick={() => setSessionTab("past")}
-                    >
-                      {t("prototypePastTab")} <span>2</span>
-                    </button>
-                  </div>
-                  {sessionTab === "upcoming" ? (
-                    <div className={styles.sessionDetailCard}>
-                      <div className={styles.sessionCalendar}>
-                        <strong>24</strong>
-                        <span>{t("prototypeOctoberShort")}</span>
-                      </div>
-                      <div className={styles.sessionDetailMain}>
-                        <span className={styles.confirmedPill}>
-                          <CheckCircle2 size={14} />{" "}
-                          {t("prototypeStatusConfirmedDemo")}
-                        </span>
-                        <h2>{t("prototypeSessionTitle")}</h2>
-                        <p>{t("prototypeSessionMeta")}</p>
-                        <div className={styles.sessionMeta}>
-                          <span>
-                            <CalendarDays size={15} />{" "}
-                            {t("prototypeSessionDate")}
-                          </span>
-                          <span>
-                            <Clock3 size={15} /> {t("prototypeSessionDuration")}
-                          </span>
-                        </div>
-                        <div className={styles.sessionPlan}>
-                          <strong>{t("prototypeSessionDetails")}</strong>
-                          <p>{t("prototypeSessionPlan")}</p>
-                        </div>
-                        <button
-                          className={styles.primaryButton}
-                          onClick={() => notify(t("prototypeDemoMeetingToast"))}
-                        >
-                          <Video size={17} /> {t("prototypeJoinSession")}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={styles.pastSessions}>
-                      <div className={styles.pastSessionRow}>
-                        <span
-                          className={`${styles.avatar} ${styles.avatarGreen}`}
-                        >
-                          TK
-                        </span>
-                        <div>
-                          <strong>{t("prototypeSessionHistoryTitle")}</strong>
-                          <small>{t("prototypeSessionHistoryDateOne")}</small>
-                        </div>
-                        <span className={styles.completePill}>
-                          <Check size={14} /> {t("prototypeSessionCompleted")}
-                        </span>
-                      </div>
-                      <div className={styles.pastSessionRow}>
-                        <span
-                          className={`${styles.avatar} ${styles.avatarCoral}`}
-                        >
-                          MB
-                        </span>
-                        <div>
-                          <strong>{t("prototypeSessionHistoryFigma")}</strong>
-                          <small>{t("prototypeSessionHistoryDateTwo")}</small>
-                        </div>
-                        <span className={styles.completePill}>
-                          <Check size={14} /> {t("prototypeSessionCompleted")}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className={styles.emptyState}>
-                  <h2>{t("prototypeNoSessions")}</h2>
-                  <p>{t("prototypeNoSessionsText")}</p>
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("explore")}
-                  >
-                    {t("prototypeNoSessionsAction")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
-            </section>
+            <PrototypeSessions
+              isDemoMode={isDemoMode}
+              sessionTab={sessionTab}
+              setSessionTab={setSessionTab}
+              onOpenDemoMeeting={() => notify(t("prototypeDemoMeetingToast"))}
+              onExplore={() => openScreen("explore")}
+            />
           )}
 
           {screen === "profile" && (

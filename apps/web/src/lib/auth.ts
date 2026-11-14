@@ -45,10 +45,8 @@ async function sendResendEmail(input: {
   });
 
   if (!response.ok) {
-    const responseText = await response.text();
-    throw new Error(
-      `Email provider returned ${response.status}: ${responseText}`,
-    );
+    // Provider bodies may echo recipient addresses or private action links.
+    throw new Error(`Email provider returned ${response.status}`);
   }
 }
 
@@ -67,6 +65,8 @@ function escapeHtml(value: string) {
 
 export const auth = betterAuth({
   appName: "SkillSwap",
+  // Enforce trusted redirect/origin checks in tests as well as production.
+  advanced: { disableOriginCheck: false },
   baseURL: authBaseUrl,
   secret:
     process.env.BETTER_AUTH_SECRET ??

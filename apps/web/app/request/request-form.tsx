@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { contactIsValid } from "@/domain/learner-request-submission-rules";
 import { useTranslations } from "@/src/i18n/provider";
 
 type TimeWindowInput = { start: string; end: string };
@@ -32,6 +33,8 @@ const initialDraft: Draft = {
   consent: false,
 };
 const DRAFT_KEY = "skillswap-request-draft-v1";
+const draftKeyFor = (mode: "guest" | "account") =>
+  mode === "account" ? `${DRAFT_KEY}-account` : DRAFT_KEY;
 
 export function RequestForm({
   minDate,
@@ -57,15 +60,18 @@ export function RequestForm({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const draftKey =
-          mode === "account" ? `${DRAFT_KEY}-account` : DRAFT_KEY;
-        const saved = sessionStorage.getItem(draftKey);
+        const saved = sessionStorage.getItem(draftKeyFor(mode));
         if (saved) {
           const parsed = JSON.parse(saved) as Partial<Draft>;
           setDraft({ ...initialDraft, ...parsed });
         }
       } catch {
-        sessionStorage.removeItem(DRAFT_KEY);
+        // A corrupt draft is dropped from the key it was read from.
+        try {
+          sessionStorage.removeItem(draftKeyFor(mode));
+        } catch {
+          // Storage unavailable: the form still works without a saved draft.
+        }
       }
       setHydrated(true);
     }, 0);
@@ -75,8 +81,7 @@ export function RequestForm({
   useEffect(() => {
     if (!hydrated) return;
     try {
-      const draftKey = mode === "account" ? `${DRAFT_KEY}-account` : DRAFT_KEY;
-      sessionStorage.setItem(draftKey, JSON.stringify(draft));
+      sessionStorage.setItem(draftKeyFor(mode), JSON.stringify(draft));
     } catch {
       // The current form remains usable when browser storage is unavailable.
     }
@@ -112,7 +117,11 @@ export function RequestForm({
         next[`window-${index}`] = t("requestWindowOrder");
       }
     });
-    if (!draft.contact.trim()) next.contact = t("requestContactRequired");
+    if (
+      !draft.contact.trim() ||
+      !contactIsValid(draft.contactType, draft.contact.trim())
+    )
+      next.contact = t("requestContactRequired");
     if (!draft.consent) next.consent = t("requestConsentRequired");
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -136,16 +145,23 @@ export function RequestForm({
           body: JSON.stringify(draft),
         },
       );
-      const result = (await response.json()) as {
+      const result = (await response.json().catch(() => ({}))) as {
         status?: "eligible" | "ineligible";
         token?: string;
         requestId?: string;
         reason?: "deadline" | "category";
       };
+      if (response.status === 400) {
+        // The server rejected the content, not the connection: say so and keep
+        // every typed value.
+        setMessageTone("error");
+        setMessage(t("requestFixErrors"));
+        return;
+      }
       if (!response.ok) throw new Error("request_failed");
       if (result.status === "ineligible") {
         if (mode === "account" && result.requestId) {
-          sessionStorage.removeItem(`${DRAFT_KEY}-account`);
+          sessionStorage.removeItem(draftKeyFor(mode));
           onComplete?.();
         }
         setMessageTone("info");
@@ -158,11 +174,11 @@ export function RequestForm({
       }
       if (mode === "guest") {
         if (!result.token) throw new Error("missing_status_link");
-        sessionStorage.removeItem(DRAFT_KEY);
+        sessionStorage.removeItem(draftKeyFor(mode));
         router.push(`/request/${encodeURIComponent(result.token)}`);
       } else {
         if (!result.requestId) throw new Error("missing_request_id");
-        sessionStorage.removeItem(`${DRAFT_KEY}-account`);
+        sessionStorage.removeItem(draftKeyFor(mode));
         onComplete?.();
       }
     } catch {

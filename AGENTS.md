@@ -31,6 +31,16 @@ Follow the ownership matrix in `docs/launch/PLAN.md`. Only D1 authors shared sch
 
 Use a task branch and small PRs, preserving other contributors' work. The user can explicitly authorize publication, but do not push feature changes directly to `main` by default. Keep production data, secrets, raw private links and generated screenshots out of task commits. The audit records a specific local snapshot and does not assert that its unpublished application changes exist on GitHub.
 
+## Cross-team handoffs — applies to every teammate and agent
+
+Before implementation, read `docs/launch/HANDOFFS.md` and the author journals it lists. Read records addressed to your D-code or to everyone, inspect the referenced PR/code at the recorded head SHA, and check its current GitHub status and dependencies. Draft code is available for coordination but is not necessarily in `main` or a final contract. If a dependency is unavailable, state that and continue independent work; do not invent or duplicate its implementation.
+
+Before finishing any task, assess its effect on other owners: APIs/types, shared helpers, migrations, strings, UI entry points, configuration, tests, ownership or blockers. For cross-team impact, update your own `docs/launch/handoffs/Dn_NAME.md` with recipients, PR/branch/head SHA, base/dependencies, affected paths/symbols, required recipient action and validation/limitations. Update the same record when the advertised contract or PR status changes, including closure or replacement. Reference the handoff ID in the PR and final summary. If there is no cross-team impact, say so briefly in the PR instead of creating an empty notification.
+
+Each teammate owns their author journal and records their own adoption/blockers there. This is a narrow coordination-document exception to D6's general documentation ownership; it does not permit editing another owner's implementation or product specs. Personal task files permanently link these journals, so new handoffs normally require only the sender's file to change. Do not mark a handoff adopted on another teammate's behalf.
+
+Publish coordination documentation so it is visible from the default branch (a separate docs PR or an already-authorized docs-only push); publishing a draft feature PR alone does not deliver instructions to agents reading `main`. Preserve unrelated code and never merge feature code merely to deliver a note. If documentation is still only in a branch/PR, report that publication is pending, with its link. Follow `HANDOFFS.md` for the record format and safe dependency review.
+
 ## Stack (decided defaults)
 
 TypeScript, Next.js App Router, Tailwind CSS, shadcn/ui primitives (restyled with our tokens), PostgreSQL with Drizzle ORM and drizzle-kit migrations, Zod for validation, Vitest for unit tests, Playwright for end-to-end tests, Docker Compose for local Postgres. Server Actions or route handlers for mutations. No separate backend service.
@@ -99,3 +109,4 @@ A task is done only when all are true:
 4. Strings come from the strings file; tokens come from `DESIGN.md`.
 5. The screen works at 360 px and with keyboard only.
 6. The summary lists what was built, what was skipped and why, dependencies added, and open questions.
+7. Cross-team impact is assessed. Relevant handoffs are updated in the author's journal and their publication location is reported; otherwise the PR states that there is no cross-team impact.

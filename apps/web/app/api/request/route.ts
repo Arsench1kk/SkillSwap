@@ -56,9 +56,6 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: "request_unavailable" },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "request_unavailable" }, { status: 503 });
   }
 }

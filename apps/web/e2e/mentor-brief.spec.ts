@@ -1,11 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { Pool } from "pg";
 import { expect, test, type Page } from "@playwright/test";
+import { createFixturePool } from "./support/database";
 
-const connectionString =
-  process.env.DATABASE_URL ??
-  "postgres://skillswap:skillswap@127.0.0.1:5433/skillswap";
-const pool = new Pool({ connectionString });
+const pool = createFixturePool();
 
 async function createBriefFixture(
   options: {

@@ -55,6 +55,32 @@ npm test
 npm run e2e
 ```
 
+## Tests and the test database
+
+Automated checks write fixtures, so they use a separate local database that is
+recreated freely. `testing/database-target.ts` resolves it from an explicit
+environment (`TEST_DATABASE_URL`, then `DATABASE_URL`; `.env*` files are not
+used for this) and **refuses** any host other than localhost or any database
+name without a separate `test` segment, before a pool, fixture or cleanup runs.
+
+```sh
+docker compose up -d db
+npm run db:test:prepare   # create skillswap_test if missing and migrate it
+npm run test:db           # unit + all PostgreSQL integration suites
+npm run e2e               # app server and fixtures on the same test database
+npm run db:test:reset     # drop, recreate and migrate (removes synthetic data)
+```
+
+Without a configured database, plain `npm test` still runs and prints a warning
+that the PostgreSQL suites were skipped; in CI (`CI=true`) a missing database is
+an error. E2E starts its own dev server on port 3100 with the test database and
+does not reuse a running server unless `E2E_REUSE_SERVER=1`.
+
+CI (`.github/workflows/ci.yml`) runs four independent jobs: format/lint/typecheck;
+clean migrations, unit/integration and a from-scratch production build; an
+upgrade migration from the PR base; Playwright E2E. Each job has its own runner
+and database, so build output, dev output and test artifacts do not collide.
+
 The rehearsal seed contains only synthetic rows and sets `data_origin = rehearsal` on every event it creates. Rehearsal data must never be analyzed as real demand.
 
 Schedule `npm run db:expire-feedback` as a recurring server-side job so unanswered L5 fields are marked `no_reply` after the two-hour rating window. The deployment cadence is a team decision; opening the private rating link does not run expiry processing.

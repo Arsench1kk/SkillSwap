@@ -31,6 +31,9 @@ export default defineConfig({
     env: {
       DATABASE_URL: database.url,
       SKILLSWAP_DATA_ORIGIN: "rehearsal",
+      // Development + localhost only (enforced in src/lib/auth.ts): lets the
+      // release journey register real accounts without sending email.
+      AUTH_DEV_SKIP_EMAIL_VERIFICATION: "true",
       BETTER_AUTH_URL: baseURL,
       NEXT_PUBLIC_APP_URL: baseURL,
     },

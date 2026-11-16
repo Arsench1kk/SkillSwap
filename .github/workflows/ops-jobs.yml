@@ -1,0 +1,45 @@
+name: ops-jobs
+
+# Manual only. A schedule is added after the team agrees cadence and access
+# (docs/operations/RUNBOOK.md §7, decision R11). Each environment holds its own
+# DATABASE_URL secret; protect `production` with required reviewers.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+      job:
+        description: Job to run
+        required: true
+        type: choice
+        options: [expire-feedback]
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: ops-${{ inputs.environment }}-${{ inputs.job }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Run ${{ inputs.job }}
+        if: ${{ inputs.job == 'expire-feedback' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:expire-feedback

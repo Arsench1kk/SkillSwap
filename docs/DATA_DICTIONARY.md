@@ -3,24 +3,24 @@
 Одна строка = одно событие. Строки не редактируются; исправление это новая строка с `corrects_event_id`.
 Лист с контактами (`participants_pii`) хранится отдельно, с ограниченным доступом, и не коммитится.
 
-| Поле | Обязательно | Значения / формат |
-|---|---|---|
-| event_id | да | уникальный |
-| participant_id | да | `L-`/`M-`/`O-` + 10 hex (см. anonymise.py) |
-| role | да | learner, mentor, operator |
-| event_name | да | см. список ниже |
-| timestamp_utc | да | ISO 8601 с часовым поясом, например `2026-10-20T09:00:00+00:00` |
-| experiment | да | E1, E2, E3 |
-| data_origin | да | real_pilot, constructed, rehearsal |
-| brief_type | для brief_sent | P или S |
-| task_category | нет | STEM, creative |
-| source_channel | нет | например чат или клуб (кодовое имя, не название группы с людьми) |
-| reason_code | для decline_reason, no_show, safety_flag | закрытый список, фиксируется на днях 1–2 |
-| value | нет | оценка 1–5, минуты, и т.п. |
-| missing_reason | нет | no_reply, declined, no_skill_match, incomplete, excluded |
-| actor | нет | кто сделал запись (оператор) |
-| corrects_event_id | нет | id исправляемого события |
-| note | нет | без контактов и имён |
+| Поле              | Обязательно                              | Значения / формат                                                                                                   |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| event_id          | да                                       | уникальный                                                                                                          |
+| participant_id    | да                                       | `L-`/`M-`/`O-` + 10 hex (см. anonymise.py)                                                                          |
+| role              | да                                       | learner, mentor, operator                                                                                           |
+| event_name        | да                                       | см. список ниже                                                                                                     |
+| timestamp_utc     | да                                       | ISO 8601 с часовым поясом, например `2026-10-20T09:00:00+00:00`                                                     |
+| experiment        | да (для событий экспериментов)           | E1, E2, E3. В БД поле nullable: обычные события платформы могут не относиться к эксперименту. Правило — решение R10 |
+| data_origin       | да                                       | real_pilot, constructed, rehearsal                                                                                  |
+| brief_type        | для brief_sent                           | P или S                                                                                                             |
+| task_category     | нет                                      | STEM, creative                                                                                                      |
+| source_channel    | нет                                      | например чат или клуб (кодовое имя, не название группы с людьми)                                                    |
+| reason_code       | для decline_reason, no_show, safety_flag | закрытый список, фиксируется на днях 1–2                                                                            |
+| value             | нет                                      | оценка 1–5, минуты, и т.п.                                                                                          |
+| missing_reason    | нет                                      | no_reply, declined, no_skill_match, incomplete, excluded                                                            |
+| actor             | нет                                      | кто сделал запись (оператор)                                                                                        |
+| corrects_event_id | нет                                      | id исправляемого события                                                                                            |
+| note              | нет                                      | без контактов и имён                                                                                                |
 
 ## События
 

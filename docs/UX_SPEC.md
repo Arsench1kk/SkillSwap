@@ -28,7 +28,7 @@ The SkillSwap web platform: a mobile-first web app and the team's main product s
 
 ### Account decision (2026-10-23)
 
-The user superseded the original no-account-only direction: accounts are the primary workspace path; a single account can switch between learner and mentor roles; the first audience is students in Almaty and Astana; public profiles and search are wanted. Better Auth with the existing PostgreSQL/Drizzle database is selected. The original no-account request/private-link flow remains available during transition. The account-to-anonymised-participant mapping and public-profile privacy/moderation rules are not yet specified.
+The user superseded the original no-account-only direction: accounts are the primary workspace path; a single account can switch between learner and mentor roles; the first audience is students in Almaty and Astana; public profiles and search are wanted. Better Auth with the existing PostgreSQL/Drizzle database is selected. The original no-account request/private-link flow remains available during transition. The account-to-anonymised-participant mapping is specified in the account inventory (§5) and `apps/web/README.md` (`account_participants`). Public-profile fields, privacy and moderation rules are not yet specified (decisions R01–R03 in `docs/launch/DECISIONS.md`).
 
 ### What it keeps from the A6 validation work
 
@@ -41,11 +41,11 @@ One caution for later analysis: if the web brief page (M2) is used in E1, an E1 
 
 ## 2. Users and context
 
-| User     | Situation                                                                                                                                                                                                          | Evidence  | Needs from the UI                                                                                                                                                          |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User     | Situation                                                                                                                                                                                                          | Evidence  | Needs from the UI                                                                                                                                                                                |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Learner  | University student in Almaty or Astana, stuck on a specific STEM or creative-software task, deadline within 14 days, already tried a free tool. Probably on a phone, arriving from a Telegram chat link, stressed. | R1, R2    | Use the account workspace to discover peers or request help. The legacy no-account request route remains during transition. Know quickly what happens next and when. Trust the person they meet. |
-| Mentor   | Student (years 2–4 preferred) with a verifiable skill. Being asked by someone they do not know, probably between classes, probably on a phone.                                                                     | R2, R3, H | Understand the task in 30 seconds. Say yes with a proposed time, or say no with a reason, in one or two taps. Feel safe.                                                   |
-| Operator | A team member doing eligibility, matching and logging manually.                                                                                                                                                    | H         | Not in this front end. A separate internal tool (Django admin is the current candidate). Listed here only so learner and mentor screens produce data the operator can use. |
+| Mentor   | Student (years 2–4 preferred) with a verifiable skill. Being asked by someone they do not know, probably between classes, probably on a phone.                                                                     | R2, R3, H | Understand the task in 30 seconds. Say yes with a proposed time, or say no with a reason, in one or two taps. Feel safe.                                                                         |
+| Operator | A team member doing eligibility, matching and logging manually.                                                                                                                                                    | H         | Not in this front end. A separate internal tool (Django admin is the current candidate). Listed here only so learner and mentor screens produce data the operator can use.                       |
 
 Key observations to design against:
 
@@ -107,12 +107,12 @@ Tokens are unguessable, single-person, and expire. Expired links show a clear pa
 
 ### Account-flow screen inventory (added 2026-10-23)
 
-| ID | Screen | States / behavior |
-| --- | --- | --- |
-| AUTH-1 | Create account | Inline validation, request pending/error, verification email sent; selected learner/mentor role is stored as active workspace role. |
-| AUTH-2 | Sign in | Pending, invalid credentials, email not verified, success to workspace. |
-| AUTH-3 | Password recovery | Generic reset-request success, provider/configuration error. |
-| AUTH-4 | Set new password | Missing/invalid/expired token, mismatch, pending, success back to sign in. |
+| ID     | Screen            | States / behavior                                                                                                                   |
+| ------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| AUTH-1 | Create account    | Inline validation, request pending/error, verification email sent; selected learner/mentor role is stored as active workspace role. |
+| AUTH-2 | Sign in           | Pending, invalid credentials, email not verified, success to workspace.                                                             |
+| AUTH-3 | Password recovery | Generic reset-request success, provider/configuration error.                                                                        |
+| AUTH-4 | Set new password  | Missing/invalid/expired token, mismatch, pending, success back to sign in.                                                          |
 
 Better Auth owns credentials, password hashing, verification tokens and sessions. Resend delivers email. Auth account email is separate from `participant_contacts` and is never copied to events. `account_participants` maps an authenticated user ID to one anonymised participant ID per role (`learner` or `mentor`); the account ID is never copied to requests, contacts, or events. A single account may therefore map to both role-specific participant records.
 
@@ -324,7 +324,8 @@ Event names come from `docs/DATA_DICTIONARY.md`. The front end sends events thro
 | L3 confirm                        | `match_accepted`                      |                                                       |
 | L4 session starts                 | `session_started`                     |                                                       |
 | Session ends                      | `session_completed`                   | with duration                                         |
-| L4 "cannot make it", no one shows | `no_show`                             | `reason_code` required                                |
+| L4 "cannot make it" (in advance)  | `session_cancelled`                   | see `docs/DATA_DICTIONARY.md`; not a no-show          |
+| Session time passes, no one shows | `no_show`                             | `reason_code` required; recorded separately           |
 | L5 usefulness                     | `usefulness_submitted`                |                                                       |
 | L5 trust                          | `trust_submitted`                     |                                                       |
 | X2 report                         | `safety_flag`                         | `reason_code` required                                |
@@ -388,22 +389,22 @@ For the coding agent and the team:
 - No hero with gradient blobs, generic stock icons, emoji as decoration, or three identical feature cards.
 - No default component-library look left unchanged (default radius, default shadows, default fonts).
 - No fake social proof, testimonials, counters, or "join 1,000 students".
-- No dashboards, no sidebars, no profile pages.
+- No dashboards, sidebars or profile pages beyond the account workspace approved on 2026-10-23 (§1); public profile pages only after their spec (R01).
 - No animation that exists only to look modern.
 - No copy invented by the agent. Use the strings file.
 - No new fields, screens or events that are not in this document.
 
 ## 13. Open questions (team decisions)
 
-1. **UI language.** English only for the pilot, or Russian and Kazakh from the start? Strings are keyed so this can change.
+1. **UI language.** Tracked as decision R09. EN/RU/KK catalogs and one locale resolver exist (`src/i18n/`); `npm run i18n:check` reports coverage. Which locales are mandatory on which surfaces is still open.
 2. **Web or Telegram Mini App.** Web by link is the default here. A Mini App fits the Telegram channel and removes friction (`H`), but locks the first version to one platform's behavior.
 3. **Learner information shown to mentors.** The brief shows task, what was tried, deadline and give-back. Should anything about the learner (year, faculty) be shown? Privacy versus trust.
 4. **Mentor proof.** What kinds of proof are accepted, who verifies them, and how long are proof links kept?
-5. **Give-back.** Is reciprocity actually carried out and measured in E3, or only asked about? This decides whether the data model needs a give-back field.
+5. **Give-back.** L1 already asks for an optional give-back and `learner_requests.give_back` stores it; M2 shows it. Still open: is reciprocity carried out and measured in E3, or only asked about.
 6. **`template_version` field.** Add it to the event schema before E1.
 7. **Consent and privacy wording** and review by someone qualified for Kazakhstan personal-data rules.
 8. **Safety escalation owner** and response time.
-9. **Hosting and token handling.** Where it runs, how long tokens live, how links are delivered.
+9. **Hosting and token handling.** Currently Vercel + Neon; environments, secrets, backup and rollback are in `docs/operations/RUNBOOK.md`. Token lifetime and link delivery remain open (R07, R11).
 10. **Operator tool.** Django admin or something else. Out of scope here but it consumes the same events.
 11. **Brand.** Name, wordmark, any existing colors the team already uses.
 

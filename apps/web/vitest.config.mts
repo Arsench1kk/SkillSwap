@@ -20,6 +20,7 @@ if (database) {
 export default defineConfig({
   resolve: {
     alias: [
+      { find: "@/src", replacement: path.resolve(rootDir, "src") },
       { find: "@/db", replacement: path.resolve(rootDir, "src/db") },
       { find: "@/domain", replacement: path.resolve(rootDir, "src/domain") },
       { find: "@/messages", replacement: path.resolve(rootDir, "messages") },

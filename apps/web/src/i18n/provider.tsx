@@ -9,57 +9,98 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { messages, type MessageKey, t as english } from "@/messages/en";
+import { useRouter } from "next/navigation";
+import type { MessageKey } from "@/messages/en";
 import {
-  translations,
-  type Language,
-  type TranslationCatalog,
-} from "./translations";
+  defaultLocale,
+  isLocale,
+  legacyLocaleStorageKey,
+  localeCookieMaxAgeSeconds,
+  localeCookieName,
+  type Locale,
+} from "./config";
+import { createTranslator } from "./translate";
+
+/** Kept for existing imports; identical to `Locale`. */
+export type Language = Locale;
 
 type LanguageContextValue = {
-  language: Language;
-  setLanguage: (language: Language) => void;
+  language: Locale;
+  setLanguage: (language: Locale) => void;
   translate: (key: MessageKey) => string;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
-const languageStorageKey = "skillswap-language";
-const supportedLanguages: readonly Language[] = ["en", "ru", "kk"];
 
-function isLanguage(value: string | null): value is Language {
-  return supportedLanguages.some((language) => language === value);
+function readCookieLocale(): Locale | null {
+  const value = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${localeCookieName}=`))
+    ?.slice(localeCookieName.length + 1);
+  return isLocale(value) ? value : null;
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>("en");
-  const [ready, setReady] = useState(false);
+function readLegacyLocale(): Locale | null {
+  try {
+    const stored = localStorage.getItem(legacyLocaleStorageKey);
+    return isLocale(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCookieLocale(locale: Locale) {
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${localeCookieName}=${locale}; Path=/; Max-Age=${localeCookieMaxAgeSeconds}; SameSite=Lax${secure}`;
+}
+
+export function LanguageProvider({
+  children,
+  initialLocale = defaultLocale,
+}: {
+  children: ReactNode;
+  /** Pass the server-resolved locale when the caller already knows it. */
+  initialLocale?: Locale;
+}) {
+  const router = useRouter();
+  const [language, setLanguageState] = useState<Locale>(initialLocale);
 
   useEffect(() => {
+    // The cookie is what the server reads; the legacy key migrates old choices.
     const timer = window.setTimeout(() => {
-      const stored = localStorage.getItem(languageStorageKey);
-      if (isLanguage(stored)) setLanguage(stored);
-      setReady(true);
+      const saved = readCookieLocale() ?? readLegacyLocale();
+      if (saved) {
+        setLanguageState(saved);
+        if (!readCookieLocale()) writeCookieLocale(saved);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
     document.documentElement.lang = language;
-    localStorage.setItem(languageStorageKey, language);
-  }, [language, ready]);
+  }, [language]);
 
-  const translate = useCallback(
-    (key: MessageKey) => {
-      if (language === "en") return english(key);
-      const catalog: TranslationCatalog = translations[language];
-      return catalog[key] ?? messages[key];
+  const setLanguage = useCallback(
+    (next: Locale) => {
+      setLanguageState(next);
+      writeCookieLocale(next);
+      try {
+        localStorage.setItem(legacyLocaleStorageKey, next);
+      } catch {
+        // Storage can be unavailable; the cookie is the source of truth.
+      }
+      // Re-render server components that resolved the locale from the cookie.
+      router.refresh();
     },
-    [language],
+    [router],
   );
+
+  const translate = useMemo(() => createTranslator(language), [language]);
   const value = useMemo(
     () => ({ language, setLanguage, translate }),
-    [language, translate],
+    [language, setLanguage, translate],
   );
 
   return (

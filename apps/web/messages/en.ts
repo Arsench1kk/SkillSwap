@@ -1088,6 +1088,17 @@ export const messages = {
     "This reset link is missing or invalid. Request a new one.",
   authEmailSetupError:
     "Email delivery is not configured yet. Please try again later or contact the SkillSwap team.",
+  // Auth emails. Same wording as the current inline text in src/lib/auth.ts.
+  authEmailVerifySubject: "Verify your SkillSwap email",
+  authEmailVerifyGreeting: "Welcome to SkillSwap, {name}.",
+  authEmailVerifyAction: "Verify your email",
+  authEmailVerifyIgnore:
+    "If you did not create this account, you can ignore this email.",
+  authEmailResetSubject: "Reset your SkillSwap password",
+  authEmailResetIntro: "Use the link below to reset your SkillSwap password.",
+  authEmailResetAction: "Reset password",
+  authEmailResetIgnore:
+    "If you did not request this, you can ignore this email.",
 } as const;
 
 export type MessageKey = keyof typeof messages;

@@ -53,6 +53,7 @@ import {
   type Mentor,
   type SkillFilter,
 } from "@/features/discovery/prototype-mentors";
+import { PrototypeProfile } from "@/features/profile/prototype-profile";
 import styles from "./prototype.module.css";
 
 type Role = "learner" | "mentor";
@@ -957,188 +958,49 @@ export function PrototypeApp() {
           )}
 
           {screen === "profile" && (
-            <section className={styles.profileScreen}>
-              {editingProfile && isDemoMode ? (
-                <form
-                  className={styles.profileForm}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    setEditingProfile(false);
-                    setAddingSkill(false);
-                    setSkillDraft("");
-                    notify(t("prototypeProfileSavedToast"));
-                  }}
-                >
-                  <h2>{t("prototypeNewProfileTitle")}</h2>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeDisplayName")}
-                    <input
-                      value={displayName}
-                      onChange={(event) =>
-                        setDisplayNameDraft(event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeStudyArea")}
-                    <input
-                      value={studyArea}
-                      onChange={(event) =>
-                        setStudyAreaDraft(event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeAbout")}
-                    <textarea
-                      value={about}
-                      onChange={(event) => setAboutDraft(event.target.value)}
-                      rows={3}
-                    />
-                  </label>
-                  <div className={styles.profileSkills}>
-                    <strong>{t("prototypeSkillListTitle")}</strong>
-                    <div className={styles.skillChips}>
-                      {mySkills.map((skill) => (
-                        <span key={skill}>
-                          {skill}
-                          <button
-                            aria-label={`${t("prototypeNewSkillRemove")} ${skill}`}
-                            onClick={() => {
-                              setMySkillsDraft((current) =>
-                                (current ?? mySkills).filter(
-                                  (item) => item !== skill,
-                                ),
-                              );
-                            }}
-                            type="button"
-                          >
-                            <X size={13} />
-                          </button>
-                        </span>
-                      ))}
-                      <button
-                        className={styles.addSkill}
-                        type="button"
-                        onClick={() => setAddingSkill((value) => !value)}
-                      >
-                        {t("prototypeNewSkillAdd")}
-                      </button>
-                    </div>
-                    {addingSkill && (
-                      <div className={styles.addSkillForm}>
-                        <label className={styles.srOnly} htmlFor="new-skill">
-                          {t("prototypeNewSkillPlaceholder")}
-                        </label>
-                        <input
-                          id="new-skill"
-                          value={skillDraft}
-                          onChange={(event) =>
-                            setSkillDraft(event.target.value)
-                          }
-                          placeholder={t("prototypeNewSkillPlaceholder")}
-                        />
-                        <button
-                          className={styles.secondaryButton}
-                          type="button"
-                          onClick={saveSkill}
-                        >
-                          {t("prototypeAddSkillAction")}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.formActions}>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={cancelProfileEdit}
-                    >
-                      {t("prototypeCancel")}
-                    </button>
-                    <button className={styles.primaryButton} type="submit">
-                      <Check size={16} /> {t("prototypeSave")}
-                    </button>
-                  </div>
-                </form>
-              ) : isDemoMode ? (
-                <article className={styles.profileView}>
-                  <header className={styles.profileIdentity}>
-                    <span className={styles.avatarProfile} aria-hidden="true">
-                      {displayName
-                        .split(" ")
-                        .map((part) => part[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </span>
-                    <div>
-                      <h1>{displayName}</h1>
-                      {studyArea && <p>{studyArea}</p>}
-                    </div>
-                    <button
-                      className={styles.secondaryButton}
-                      onClick={() => {
-                        setProfileSnapshot({
-                          name: displayName,
-                          study: studyArea,
-                          about,
-                          skills: [...mySkills],
-                        });
-                        setEditingProfile(true);
-                      }}
-                    >
-                      {t("profileEditAction")}
-                    </button>
-                  </header>
-                  {about && (
-                    <section className={styles.profileSection}>
-                      <h2>{t("profileAboutHeading")}</h2>
-                      <p>{about}</p>
-                    </section>
-                  )}
-                  {mySkills.length > 0 && (
-                    <section className={styles.profileSection}>
-                      <h2>{t("prototypeSkillListTitle")}</h2>
-                      <ul className={styles.profileSkillList}>
-                        {mySkills.map((skill) => (
-                          <li key={skill}>{skill}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                </article>
-              ) : (
-                <article className={styles.profileView}>
-                  <header className={styles.profileIdentity}>
-                    <span className={styles.avatarProfile} aria-hidden="true">
-                      {accountInitials}
-                    </span>
-                    <div>
-                      <h1>{authSession?.user.name}</h1>
-                      <p>
-                        <strong>{t("prototypeProfileEmail")}:</strong>{" "}
-                        {authSession?.user.email}
-                      </p>
-                    </div>
-                  </header>
-                  <section className={styles.profileSection}>
-                    <h2>{t("prototypeEmptyProfile")}</h2>
-                    <p>{t("prototypeEmptyProfileText")}</p>
-                    <button
-                      className={styles.primaryButton}
-                      onClick={() =>
-                        openScreen(role === "learner" ? "explore" : "home")
-                      }
-                    >
-                      {role === "learner"
-                        ? t("prototypeProfileGoToMentors")
-                        : t("prototypeNavHome")}{" "}
-                      <ArrowRight size={16} />
-                    </button>
-                  </section>
-                </article>
-              )}
-            </section>
+            <PrototypeProfile
+              isDemoMode={isDemoMode}
+              editingProfile={editingProfile}
+              displayName={displayName}
+              studyArea={studyArea}
+              about={about}
+              mySkills={mySkills}
+              accountInitials={accountInitials}
+              account={authSession?.user}
+              role={role}
+              addingSkill={addingSkill}
+              skillDraft={skillDraft}
+              onSave={() => {
+                setEditingProfile(false);
+                setAddingSkill(false);
+                setSkillDraft("");
+                notify(t("prototypeProfileSavedToast"));
+              }}
+              onCancel={cancelProfileEdit}
+              onEdit={() => {
+                setProfileSnapshot({
+                  name: displayName,
+                  study: studyArea,
+                  about,
+                  skills: [...mySkills],
+                });
+                setEditingProfile(true);
+              }}
+              onRemoveSkill={(skill) =>
+                setMySkillsDraft((current) =>
+                  (current ?? mySkills).filter((item) => item !== skill),
+                )
+              }
+              onToggleAddingSkill={() => setAddingSkill((value) => !value)}
+              onAddSkill={saveSkill}
+              onNameChange={setDisplayNameDraft}
+              onStudyChange={setStudyAreaDraft}
+              onAboutChange={setAboutDraft}
+              onSkillDraftChange={setSkillDraft}
+              onContinue={() =>
+                openScreen(role === "learner" ? "explore" : "home")
+              }
+            />
           )}
 
           {screen === "settings" && (

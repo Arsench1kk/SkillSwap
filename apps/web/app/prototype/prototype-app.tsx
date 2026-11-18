@@ -12,12 +12,10 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
-  BookOpen,
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
-  Clock3,
   Compass,
   Home,
   LogOut,
@@ -54,6 +52,11 @@ import {
   type SkillFilter,
 } from "@/features/discovery/prototype-mentors";
 import { PrototypeProfile } from "@/features/profile/prototype-profile";
+import {
+  PrototypeInvitations,
+  PrototypeMentorHome,
+  type PrototypeInvitationStatus,
+} from "@/features/mentor/prototype-invitations";
 import styles from "./prototype.module.css";
 
 type Role = "learner" | "mentor";
@@ -141,7 +144,7 @@ export function PrototypeApp() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>([2]);
   const [savedOnly, setSavedOnly] = useState(false);
   const [invitationStates, setInvitationStates] = useState<
-    Record<number, "pending" | "accepted" | "declined">
+    Record<number, PrototypeInvitationStatus>
   >({ 1: "pending", 2: "pending" });
   const [toast, setToast] = useState("");
   const [sessionTab, setSessionTab] = useState<PrototypeSessionTab>("upcoming");
@@ -375,7 +378,7 @@ export function PrototypeApp() {
 
   const setInvitationStatus = (
     id: number,
-    status: "pending" | "accepted" | "declined",
+    status: PrototypeInvitationStatus,
   ) => {
     setInvitationStates((current) => ({ ...current, [id]: status }));
     notify(
@@ -679,49 +682,12 @@ export function PrototypeApp() {
           )}
 
           {screen === "home" && role === "mentor" && (
-            <>
-              <section className={styles.welcomeBlock}>
-                <div>
-                  <h1>{t("workspaceMentorHomeTitle")}</h1>
-                  <p>{t("workspaceMentorHomeText")}</p>
-                </div>
-              </section>
-              <section className={styles.inboxSection}>
-                <div className={styles.sectionHead}>
-                  <div>
-                    <h2>{t("prototypeInvitations")}</h2>
-                  </div>
-                  <button
-                    className={styles.textButton}
-                    onClick={() => openScreen("requests")}
-                  >
-                    {t("prototypeSeeAll")} <ArrowRight size={15} />
-                  </button>
-                </div>
-                {isDemoMode ? (
-                  <>
-                    <InvitationCard
-                      status={invitationStates[1] ?? "pending"}
-                      onAccept={() => setInvitationStatus(1, "accepted")}
-                      onDecline={() => setInvitationStatus(1, "declined")}
-                      onUndo={() => setInvitationStatus(1, "pending")}
-                      onOpen={() => openScreen("requests")}
-                    />
-                    <button
-                      className={styles.textButton}
-                      onClick={() => openScreen("requests")}
-                    >
-                      {t("workspaceMoreRequests")} <ArrowRight size={15} />
-                    </button>
-                  </>
-                ) : (
-                  <div className={styles.emptyState}>
-                    <h2>{t("prototypeNoInvitations")}</h2>
-                    <p>{t("prototypeNoInvitationsText")}</p>
-                  </div>
-                )}
-              </section>
-            </>
+            <PrototypeMentorHome
+              isDemoMode={isDemoMode}
+              invitationStates={invitationStates}
+              onStatusChange={setInvitationStatus}
+              onOpenInvitations={() => openScreen("requests")}
+            />
           )}
 
           {screen === "explore" && (
@@ -914,37 +880,12 @@ export function PrototypeApp() {
           )}
 
           {screen === "requests" && role === "mentor" && (
-            <section className={styles.listScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeInvitations")}</h1>
-                </div>
-              </div>
-              {isDemoMode ? (
-                <div className={styles.invitationStack}>
-                  <InvitationCard
-                    status={invitationStates[1] ?? "pending"}
-                    onAccept={() => setInvitationStatus(1, "accepted")}
-                    onDecline={() => setInvitationStatus(1, "declined")}
-                    onUndo={() => setInvitationStatus(1, "pending")}
-                    onOpen={() => notify(t("prototypeInvitationTask"))}
-                  />
-                  <InvitationCard
-                    compact
-                    status={invitationStates[2] ?? "pending"}
-                    onAccept={() => setInvitationStatus(2, "accepted")}
-                    onDecline={() => setInvitationStatus(2, "declined")}
-                    onUndo={() => setInvitationStatus(2, "pending")}
-                    onOpen={() => notify(t("prototypeSecondInvitation"))}
-                  />
-                </div>
-              ) : (
-                <div className={styles.emptyState}>
-                  <h2>{t("prototypeNoInvitations")}</h2>
-                  <p>{t("prototypeNoSessionsText")}</p>
-                </div>
-              )}
-            </section>
+            <PrototypeInvitations
+              isDemoMode={isDemoMode}
+              invitationStates={invitationStates}
+              onStatusChange={setInvitationStatus}
+              onOpen={notify}
+            />
           )}
 
           {screen === "sessions" && (
@@ -1115,93 +1056,6 @@ export function PrototypeApp() {
         </div>
       )}
     </div>
-  );
-}
-
-function InvitationCard({
-  compact = false,
-  status,
-  onAccept,
-  onDecline,
-  onUndo,
-  onOpen,
-}: {
-  compact?: boolean;
-  status: "pending" | "accepted" | "declined";
-  onAccept: () => void;
-  onDecline: () => void;
-  onUndo: () => void;
-  onOpen: () => void;
-}) {
-  const t = useTranslations();
-  const stateLabel =
-    status === "accepted"
-      ? t("prototypeInvitationStateAccepted")
-      : t("prototypeInvitationStateDeclined");
-  return (
-    <article
-      className={`${styles.invitationCard} ${compact ? styles.invitationCompact : ""}`}
-    >
-      <div className={styles.invitationTop}>
-        <div className={styles.invitationPerson}>
-          <span
-            className={`${styles.avatar} ${compact ? styles.avatarGold : styles.avatarCoral}`}
-          >
-            {compact ? "NL" : "NM"}
-          </span>
-          <div>
-            <strong>
-              {compact
-                ? t("prototypeInvitationNurlan")
-                : t("prototypeInvitationNadia")}
-            </strong>
-            <small>{t("prototypeStudentDue")}</small>
-          </div>
-        </div>
-      </div>
-      <h3>
-        {compact
-          ? t("prototypeInvitationSecond")
-          : t("prototypeInvitationTask")}
-      </h3>
-      <p>{t("prototypeInvitationMeta")}</p>
-      {!compact && (
-        <div className={styles.invitationExtra}>
-          <span>
-            <BookOpen size={16} /> {t("prototypeTriedExamples")}
-          </span>
-          <span>
-            <Clock3 size={16} /> {t("prototypeTwoWindows")}
-          </span>
-        </div>
-      )}
-      {status === "pending" ? (
-        <div className={styles.invitationActions}>
-          <button className={styles.textButton} onClick={onOpen}>
-            {t("prototypeRequestReviewAction")}
-          </button>
-          <button className={styles.secondaryButton} onClick={onDecline}>
-            {t("prototypeNotThisTime")}
-          </button>
-          <button className={styles.primaryButton} onClick={onAccept}>
-            {t("prototypeCanHelpAction")} <ArrowRight size={15} />
-          </button>
-        </div>
-      ) : (
-        <div className={styles.invitationResolved}>
-          <span
-            className={
-              status === "accepted" ? styles.completePill : styles.passedPill
-            }
-          >
-            <Check size={14} /> {stateLabel}
-          </span>
-          <button className={styles.textButton} onClick={onUndo}>
-            {t("prototypeUndoAction")}
-          </button>
-        </div>
-      )}
-    </article>
   );
 }
 

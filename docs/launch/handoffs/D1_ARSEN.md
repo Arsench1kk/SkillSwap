@@ -308,6 +308,36 @@
   и пустую выдачу для аккаунта. Impeccable отсутствует. Новых зависимостей нет.
   [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/43598462432) прошёл.
 
+<a id="d1-h012"></a>
+
+## D1-H012 — ревью тестовой инфраструктуры D6
+
+- **Автор:** D1 / Арсен. **Адресаты:** D6, D2–D5 для учёта статуса тестовой базы.
+- **Проверено:** 18 ноября 2026. **Статус:** reviewed, принятие D6-H001 отложено
+  до исправления защиты назначения. [Draft PR №13](https://github.com/Arsench1kk/SkillSwap/pull/13).
+- **Код:** ветка Андрея `codex/andrey-d6-test-ci`, head
+  `4fe8c0867e6532544a3a60302b553607705b2253`. Base
+  `edf813505718cbe8d8f709c3cf2fd3de5b8ea47c`.
+- **Дефект P1:** `apps/web/testing/database-target.ts` проверяет hostname
+  через URL, но возвращает исходный connection string. Для строки
+  `postgres://synthetic:synthetic@localhost/skillswap_test?host=remote.example.test&port=6543`
+  guard видит localhost:5432, а фактическая конфигурация `pg.Client` —
+  remote.example.test:6543. Воспроизведено без подключения к удалённому серверу.
+  `testing/prepare-database.ts` использует тот же URL для административного
+  Client, включая DROP DATABASE при --reset.
+- **Действие D6:** согласовать проверку с реальным разбором pg либо запрещать
+  переопределения назначения через query до открытия соединения. Регрессии
+  должны включать host/port, socket path, encoded и повторяющиеся параметры.
+  Проверка должна сработать до reset, fixtures и миграций.
+- **Проверки:** format:check, lint, typecheck, 252 теста на отдельном временном
+  PostgreSQL 16 с одним существующим TODO, prepare/reset, --migrations-dir
+  с текущими миграциями и 63 Playwright сценария прошли. Первый запуск
+  dev-сервера остановился на одноразовом уведомлении Next.js, повтор прошёл.
+  Upgrade со старой схемы и production build в этом ревью локально не повторены.
+  Их выполняет новый GitHub CI. Новых зависимостей нет.
+- **Доставка:** эта запись публикуется в main отдельно. Изменение guard принадлежит
+  D6. Ветка Андрея открыта для ревью через PR №13.
+
 ## Совместная проверка и общие ограничения
 
 Четыре блока объединены только в локальной ветке `codex/arsen-integration-check`:

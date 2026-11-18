@@ -13,7 +13,6 @@ import {
   ArrowRight,
   Bell,
   CalendarDays,
-  Check,
   CheckCircle2,
   ChevronDown,
   Compass,

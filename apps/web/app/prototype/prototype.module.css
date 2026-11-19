@@ -1,54 +1,3 @@
-.profileView {
-  max-width: 800px;
-}
-.profileIdentity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  padding-bottom: var(--space-8);
-}
-.profileIdentity > div {
-  flex: 1;
-  min-width: 0;
-}
-.profileIdentity h1 {
-  margin: 0;
-  font-size: var(--type-page-title-size);
-  line-height: var(--type-page-title-line);
-}
-.profileIdentity p {
-  margin: var(--space-2) 0 0;
-  color: var(--ink-muted);
-}
-.profileSection {
-  padding: var(--space-6) 0;
-  border-top: 1px solid var(--line);
-}
-.profileSection h2 {
-  margin: 0 0 var(--space-3);
-  font-size: var(--type-section-title-size);
-}
-.profileSection p {
-  margin: 0;
-  max-width: 65ch;
-}
-.profileSkillList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-  padding-left: var(--space-4);
-  margin: 0;
-}
-@media (max-width: 680px) {
-  .profileIdentity {
-    flex-wrap: wrap;
-    gap: var(--space-4);
-  }
-  .profileIdentity > div {
-    flex-basis: calc(100% - 100px);
-  }
-}
-
 .mentorSkills {
   margin: var(--space-3) 0 0;
   font-size: var(--type-meta-size);
@@ -506,7 +455,6 @@
 .requestPanel,
 .settingsGroup,
 .profileSummary,
-.profileForm,
 .personAbout,
 .personAside {
   background: var(--surface);
@@ -782,57 +730,6 @@
   align-self: center;
 }
 
-.inboxSection {
-  max-width: 940px;
-}
-
-.inboxSection > .sectionHead {
-  margin-bottom: 15px;
-}
-
-.invitationStack {
-  display: grid;
-  gap: 16px;
-}
-
-.invitationCard {
-  padding: 21px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-}
-
-.invitationTop,
-.invitationPerson,
-.invitationActions {
-  display: flex;
-  align-items: center;
-}
-
-.invitationTop {
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.invitationPerson {
-  gap: 11px;
-}
-
-.invitationPerson strong,
-.invitationPerson small {
-  display: block;
-}
-
-.invitationPerson strong {
-  font-size: var(--type-meta-size);
-}
-
-.invitationPerson small {
-  margin-top: 2px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
 .privateTag,
 .samplePill {
   display: inline-flex;
@@ -848,87 +745,6 @@
 
 .privateTag {
   padding: 6px 9px;
-}
-
-.invitationCard h3 {
-  margin: 19px 0 5px;
-  font-size: 20px;
-  line-height: 27px;
-  letter-spacing: -0.025em;
-}
-
-.invitationCard > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.invitationExtra {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 21px;
-  margin-top: 16px;
-  padding: 13px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.invitationExtra span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.invitationExtra svg {
-  color: var(--accent);
-}
-
-.invitationActions {
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 17px;
-}
-
-.invitationActions .textButton {
-  margin-right: auto;
-}
-
-.invitationResolved {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 15px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.passedPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 9px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-}
-
-.invitationCompact {
-  padding: 17px 21px;
-}
-
-.invitationCompact h3 {
-  margin: 14px 0 4px;
-  font-size: var(--type-body-size);
-  line-height: 22px;
-}
-
-.invitationCompact .invitationActions {
-  margin-top: 10px;
 }
 
 .mentorInsight,
@@ -977,26 +793,6 @@
   background: var(--accent-tint);
   letter-spacing: 0.04em;
   white-space: nowrap;
-}
-
-.skillChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.skillChips > span,
-.skillChips > button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 27px;
-  padding: 0 9px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 11px;
 }
 
 .emptyState {
@@ -1407,69 +1203,6 @@
 .profileSummary .secondaryButton {
   min-height: 39px;
   font-size: 12px;
-}
-
-.profileForm {
-  display: grid;
-  gap: 17px;
-  padding: 22px;
-}
-
-.profileForm > h2 {
-  margin: 0 0 2px;
-  font-size: 18px;
-}
-
-.profileForm > .primaryButton {
-  justify-self: start;
-}
-
-.profileSkills {
-  display: grid;
-  gap: 9px;
-}
-
-.profileSkills > strong {
-  font-size: var(--type-meta-size);
-}
-
-.profileSkills .skillChips > span {
-  min-height: 31px;
-}
-
-.skillChips > span button {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.skillChips .addSkill {
-  color: var(--accent);
-  background: var(--accent-tint);
-  border-color: var(--accent-border);
-  cursor: pointer;
-}
-
-.addSkillForm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 9px;
-}
-
-.addSkillForm input {
-  flex: 1;
-  min-width: 0;
-  min-height: 42px;
-  padding: 0 11px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  font: inherit;
 }
 
 .srOnly {
@@ -2206,7 +1939,6 @@
     padding: 20px;
   }
 
-  .profileForm,
   .settingsGroup {
     padding: 17px;
   }
@@ -2228,14 +1960,6 @@
     width: 100%;
   }
 
-  .invitationCard {
-    padding: 16px;
-  }
-
-  .invitationTop {
-    align-items: flex-start;
-  }
-
   .privateTag {
     font-size: 0;
   }
@@ -2243,26 +1967,6 @@
   .privateTag svg {
     width: 17px;
     height: 17px;
-  }
-
-  .invitationCard h3 {
-    font-size: var(--type-meta-size);
-    line-height: 22px;
-  }
-
-  .invitationActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .invitationActions .textButton {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
-  .invitationActions button:not(.textButton) {
-    min-width: 0;
-    padding: 0 8px;
   }
 
   .toast {
@@ -2475,9 +2179,7 @@
   border: 0;
   padding: 0;
 }
-.invitationCard,
 .settingsGroup,
-.profileForm,
 .personAbout,
 .personAside {
   border: 0;
@@ -2485,17 +2187,9 @@
   box-shadow: none;
   background: transparent;
 }
-.invitationCard {
-  padding: var(--space-6) 0;
-  border-bottom: 1px solid var(--line);
-}
-.invitationStack {
-  gap: 0;
-}
 .personAbout,
 .personAside,
-.settingsGroup,
-.profileForm {
+.settingsGroup {
   padding: var(--space-6) 0;
 }
 .personContent {
@@ -2503,16 +2197,6 @@
 }
 .settingsGroup + .settingsGroup {
   border-top: 1px solid var(--line);
-}
-.skillChips > span {
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--ink-muted);
-}
-.skillChips {
-  gap: var(--space-2) var(--space-4);
 }
 .workspaceFocus {
   border: 0;
@@ -2523,9 +2207,6 @@
 .focusStatus {
   padding: 0;
   background: transparent;
-}
-.profileForm {
-  max-width: 640px;
 }
 .screenHeading h1,
 .welcomeBlock h1 {

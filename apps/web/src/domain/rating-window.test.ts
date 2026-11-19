@@ -3,23 +3,44 @@ import { classifyRatingState, isRatingWindowOpen } from "./rating-page";
 
 describe("rating window", () => {
   const endsAt = new Date("2026-10-20T10:00:00.000Z");
+  const completed = { endsAt, completionState: "completed" as const };
 
-  it("is open through the two-hour cutoff", () => {
-    expect(
-      isRatingWindowOpen(endsAt, new Date("2026-10-20T12:00:00.000Z")),
-    ).toBe(true);
+  it.each([
+    ["2026-10-20T09:59:59.999Z", false],
+    ["2026-10-20T10:00:00.000Z", true],
+    ["2026-10-20T11:59:59.999Z", true],
+    ["2026-10-20T12:00:00.000Z", true],
+    ["2026-10-20T12:00:00.001Z", false],
+  ])("checks the completed session boundary at %s", (time, expected) => {
+    expect(isRatingWindowOpen(completed, new Date(time))).toBe(expected);
   });
 
-  it("closes after the two-hour cutoff", () => {
+  it.each(["scheduled", "started", "cancelled", "no_show"] as const)(
+    "rejects %s even when its end time is inside the window",
+    (completionState) => {
+      expect(
+        isRatingWindowOpen(
+          { endsAt, completionState },
+          new Date("2026-10-20T11:00:00Z"),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it("rejects completed sessions without a recorded end", () => {
     expect(
-      isRatingWindowOpen(endsAt, new Date("2026-10-20T12:00:00.001Z")),
+      isRatingWindowOpen(
+        { endsAt: null, completionState: "completed" },
+        new Date("2026-10-20T11:00:00Z"),
+      ),
     ).toBe(false);
   });
 
-  it("keeps ratings open when the session end is not recorded", () => {
-    expect(isRatingWindowOpen(null, new Date("2026-10-20T12:00:00.001Z"))).toBe(
-      true,
+  it("rejects invalid dates", () => {
+    expect(isRatingWindowOpen({ ...completed, endsAt: new Date(NaN) })).toBe(
+      false,
     );
+    expect(isRatingWindowOpen(completed, new Date(NaN))).toBe(false);
   });
 });
 

@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -99,16 +100,66 @@ const iconForScreen = {
   typeof Home
 >;
 
+type WorkspaceSession = NonNullable<
+  ReturnType<typeof authClient.useSession>["data"]
+>;
+
 export function PrototypeApp() {
+  const t = useTranslations();
+  const { data, isPending, error, refetch } = authClient.useSession();
+  const blocked = isPending || Boolean(error);
+  return (
+    <>
+      {blocked && (
+        <main className="public-page">
+          <div className="public-content">
+            <section
+              className="public-panel"
+              role={error ? "alert" : "status"}
+              aria-busy={isPending}
+            >
+              <p className="public-copy">
+                {t(error ? "authRequestError" : "loading")}
+              </p>
+              {error && (
+                <button
+                  className={styles.primaryButton}
+                  onClick={() => void refetch()}
+                >
+                  {t("prototypeRetry")}
+                </button>
+              )}
+            </section>
+          </div>
+        </main>
+      )}
+      {(data || !blocked) && (
+        <div hidden={blocked}>
+          <PrototypeWorkspace
+            key={data?.user.id ?? "demo"}
+            authSession={data}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function PrototypeWorkspace({
+  authSession,
+}: {
+  authSession: WorkspaceSession | null;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: authSession } = authClient.useSession();
   const { language } = useLanguage();
   const isDemoMode = authSession === null;
   const requestedRole: Role =
     searchParams.get("role") === "mentor" ? "mentor" : "learner";
   const [roleSelection, setRoleSelection] = useState<Role | null>(null);
+  const authActionInFlight = useRef(false);
+  const [authAction, setAuthAction] = useState<"role" | "signout" | null>(null);
   const role =
     roleSelection ??
     (authSession?.user.activeRole === "mentor"
@@ -275,25 +326,48 @@ export function PrototypeApp() {
   }, []);
 
   const changeRole = async (nextRole: Role) => {
-    const previousRole = role;
-    setRoleSelection(nextRole);
-    openScreen("home");
-    if (!authSession?.user) return;
-
-    const result = await authClient.updateUser({ activeRole: nextRole });
-    if (result.error) {
-      setRoleSelection(previousRole);
+    if (authActionInFlight.current || nextRole === role) return;
+    if (!authSession?.user) {
+      setRoleSelection(nextRole);
+      openScreen("home");
+      return;
+    }
+    authActionInFlight.current = true;
+    setAuthAction("role");
+    try {
+      const result = await authClient.updateUser({ activeRole: nextRole });
+      if (result.error) {
+        notify(t("prototypeRoleSaveFailed"));
+        return;
+      }
+      // Keep the previous workspace until the server has saved the new role.
+      setRoleSelection(nextRole);
+      openScreen("home");
+    } catch {
       notify(t("prototypeRoleSaveFailed"));
+    } finally {
+      authActionInFlight.current = false;
+      setAuthAction(null);
     }
   };
 
   const signOut = async () => {
-    const result = await authClient.signOut();
-    if (result.error) {
+    if (authActionInFlight.current) return;
+    authActionInFlight.current = true;
+    setAuthAction("signout");
+    try {
+      const result = await authClient.signOut();
+      if (result.error) {
+        notify(t("prototypeSignOutFailed"));
+        return;
+      }
+      router.push("/");
+    } catch {
       notify(t("prototypeSignOutFailed"));
-      return;
+    } finally {
+      authActionInFlight.current = false;
+      setAuthAction(null);
     }
-    router.push("/");
   };
 
   const visibleMentors = useMemo(() => {
@@ -545,9 +619,11 @@ export function PrototypeApp() {
               className={styles.roleSwitch}
               role="group"
               aria-label={t("prototypeSwitchRole")}
+              aria-busy={authAction === "role"}
             >
               <button
                 className={role === "learner" ? styles.roleActive : ""}
+                disabled={authAction !== null}
                 onClick={() => void changeRole("learner")}
                 aria-pressed={role === "learner"}
               >
@@ -555,6 +631,7 @@ export function PrototypeApp() {
               </button>
               <button
                 className={role === "mentor" ? styles.roleActive : ""}
+                disabled={authAction !== null}
                 onClick={() => void changeRole("mentor")}
                 aria-pressed={role === "mentor"}
               >
@@ -967,6 +1044,8 @@ export function PrototypeApp() {
                 </button>
                 <button
                   className={`${styles.settingsLink} ${styles.signOutLink}`}
+                  disabled={authAction !== null}
+                  aria-busy={authAction === "signout"}
                   onClick={() =>
                     authSession?.user ? void signOut() : router.push("/signup")
                   }

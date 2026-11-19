@@ -39,10 +39,7 @@ import {
   PrototypeSessions,
   type PrototypeSessionTab,
 } from "@/features/sessions/prototype-sessions";
-import {
-  PrototypeDiscovery,
-  MentorSkills,
-} from "@/features/discovery/prototype-discovery";
+import { PrototypeDiscovery } from "@/features/discovery/prototype-discovery";
 import {
   mentors,
   localizeMentor,
@@ -50,6 +47,7 @@ import {
   type Mentor,
   type SkillFilter,
 } from "@/features/discovery/prototype-mentors";
+import { PrototypeMentorCard } from "@/features/profile/prototype-mentor-card";
 import { PrototypeProfile } from "@/features/profile/prototype-profile";
 import {
   PrototypeInvitations,
@@ -124,7 +122,6 @@ export function PrototypeApp() {
   const [filter, setFilter] = useState<SkillFilter>("all");
   const [search, setSearch] = useState("");
   const [selectedMentor, setSelectedMentor] = useState<Mentor>(mentors[0]);
-  const selectedMentorCopy = localizeMentor(selectedMentor, t);
   const [accountRequests, setAccountRequests] = useState<PrototypeRequest[]>(
     [],
   );
@@ -712,61 +709,11 @@ export function PrototypeApp() {
           )}
 
           {screen === "mentor-profile" && (
-            <section className={styles.personPage}>
-              <button
-                className={styles.backLink}
-                onClick={() => openScreen("explore")}
-              >
-                <ArrowLeft size={16} /> {t("prototypeBackToResults")}
-              </button>
-              <div className={styles.personHero}>
-                <span
-                  className={`${styles.avatarLarge} ${styles[`avatar${capitalize(selectedMentor.color)}`]}`}
-                >
-                  {selectedMentor.initials}
-                </span>
-                <div className={styles.personIdentity}>
-                  <h1>{selectedMentor.name}</h1>
-                  <p>
-                    {selectedMentorCopy.study} · {selectedMentorCopy.city}
-                  </p>
-                  <MentorSkills skills={selectedMentor.skills} />
-                </div>
-                <button
-                  className={styles.primaryButton}
-                  onClick={() => openScreen("new-request")}
-                >
-                  {t("prototypeAskMentor")} <ArrowRight size={17} />
-                </button>
-              </div>
-              <div className={styles.personContent}>
-                <section className={styles.personAbout}>
-                  <h2>{t("prototypeProfileTitle")}</h2>
-                  <p>{selectedMentorCopy.about}</p>
-                  <h3>{t("prototypeSkillEvidence")}</h3>
-                  <div className={styles.evidenceRow}>
-                    <div>
-                      <strong>{selectedMentorCopy.proof}</strong>
-                    </div>
-                  </div>
-                </section>
-                <aside className={styles.personAside}>
-                  <h2>{t("prototypeAvailable")}</h2>
-                  <div className={styles.availabilitySlot}>
-                    <CalendarDays size={18} />
-                    <span>{selectedMentor.availability}</span>
-                  </div>
-                  <div className={styles.howNext}>
-                    <strong>{t("prototypeHowItWorks")}</strong>
-                    <p>{t("prototypeHumanReview")}</p>
-                  </div>
-                  <p className={styles.contactPrivacy}>
-                    <ShieldCheck size={16} />{" "}
-                    {t("prototypeDirectoryContactRule")}
-                  </p>
-                </aside>
-              </div>
-            </section>
+            <PrototypeMentorCard
+              mentor={selectedMentor}
+              onBack={() => openScreen("explore")}
+              onRequest={() => openScreen("new-request")}
+            />
           )}
 
           {screen === "new-request" && (

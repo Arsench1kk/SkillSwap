@@ -1,13 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { Pool } from "pg";
 import { expect, test } from "@playwright/test";
 import { expireUnansweredFeedback } from "../src/domain/expire-feedback";
+import { createFixturePool } from "./support/database";
 
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ??
-    "postgres://skillswap:skillswap@127.0.0.1:5433/skillswap",
-});
+const pool = createFixturePool();
 
 type FixtureOptions = {
   requestStatus?:

@@ -5,28 +5,29 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/web
+
+# Every job gets its own runner, checkout and database, so build output (.next),
+# dev-server output and Playwright artifacts never overwrite each other.
+env:
+  # Disposable CI-only service database; the test guard refuses any other
+  # target. Not a secret.
+  TEST_DATABASE_URL: postgres://skillswap:skillswap@localhost:5432/skillswap_test
+  # CI-only placeholder so the build does not fall back to Better Auth's
+  # default secret. Real environments use their own secret store.
+  BETTER_AUTH_SECRET: ci-only-placeholder-not-a-real-secret-0000
+  SKILLSWAP_DATA_ORIGIN: rehearsal
+
 jobs:
-  checks:
+  static:
+    name: format, lint, typecheck
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: postgres://skillswap:skillswap@localhost:5432/skillswap
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: skillswap
-          POSTGRES_PASSWORD: skillswap
-          POSTGRES_DB: skillswap
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U skillswap -d skillswap"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    defaults:
-      run:
-        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,9 +36,124 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
-      - run: npm run db:migrate
+      # Each check runs even if an earlier one fails, so one PR shows all problems.
       - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
+      - if: ${{ !cancelled() }}
+        run: npm run lint
+      - if: ${{ !cancelled() }}
+        run: npm run typecheck
+
+  test-and-build:
+    name: migrations (clean), unit/integration, production build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: skillswap
+          POSTGRES_PASSWORD: skillswap
+          POSTGRES_DB: skillswap_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U skillswap -d skillswap_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Migrate a clean database
+        run: npm run db:test:reset
+      # CI=true makes a missing database a failure instead of skipped suites.
       - run: npm test
-      - run: npm run build
+      - name: Production build from scratch
+        run: rm -rf .next && npm run build
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+  migrations-upgrade:
+    name: migrations (upgrade from base)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: skillswap
+          POSTGRES_PASSWORD: skillswap
+          POSTGRES_DB: skillswap_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U skillswap -d skillswap_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Resolve previous version
+        id: base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            BASE_SHA=$(git rev-parse HEAD~1)
+          fi
+          echo "sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+      - name: Migrate with the previous version's migrations
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" "${{ steps.base.outputs.sha }}"
+          npm run db:test:reset -- --migrations-dir "$RUNNER_TEMP/base/apps/web/drizzle"
+      - name: Upgrade to this version's migrations
+        run: npm run db:test:prepare
+
+  e2e:
+    name: end-to-end (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: skillswap
+          POSTGRES_PASSWORD: skillswap
+          POSTGRES_DB: skillswap_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U skillswap -d skillswap_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run db:test:reset
+      - run: npm run e2e
+      - name: Keep Playwright report on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7

@@ -1,0 +1,257 @@
+.personAbout,
+.personAside {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.personPage {
+  max-width: 1050px;
+}
+
+.personHero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.personHero > .cardAction {
+  margin-left: auto;
+}
+
+.personIdentity {
+  min-width: 0;
+}
+
+.personIdentity h1 {
+  margin: 5px 0 1px;
+  font-size: 27px;
+  line-height: 33px;
+  letter-spacing: -0.03em;
+}
+
+.personIdentity > p {
+  margin: 0 0 11px;
+  color: var(--ink-muted);
+  font-size: var(--type-meta-size);
+}
+
+.personContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 17px;
+  margin-top: 17px;
+}
+
+.personAbout,
+.personAside {
+  padding: 23px;
+}
+
+.personAbout h2,
+.personAside h2 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 25px;
+}
+
+.personAbout > p {
+  max-width: 62ch;
+  margin: 9px 0 28px;
+  color: var(--ink-muted);
+}
+
+.personAbout h3 {
+  margin: 0 0 12px;
+  font-size: var(--type-meta-size);
+}
+
+.evidenceRow {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.evidenceRow > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: var(--accent);
+  background: var(--accent-tint);
+  border-radius: 9px;
+}
+
+.evidenceRow > div strong,
+.evidenceRow > div small {
+  display: block;
+}
+
+.evidenceRow > div strong {
+  font-size: 12px;
+}
+
+.evidenceRow > div small {
+  margin-top: 3px;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.evidenceRow > svg {
+  color: var(--success);
+}
+
+.personAside h2 {
+  margin-bottom: 15px;
+}
+
+.availabilitySlot {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 0 11px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-control);
+  font-size: var(--type-meta-size);
+}
+
+.availabilitySlot svg:first-child {
+  color: var(--accent);
+}
+
+.availabilitySlot span {
+  flex: 1;
+}
+
+.availabilitySlot svg:last-child {
+  color: var(--success);
+}
+
+.howNext {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.howNext strong {
+  font-size: var(--type-meta-size);
+}
+
+.howNext p,
+.contactPrivacy {
+  margin: 5px 0 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 19px;
+}
+
+.contactPrivacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.contactPrivacy svg {
+  flex: 0 0 auto;
+  color: var(--success);
+}
+
+@media (max-width: 1100px) {
+  .personContent {
+    grid-template-columns: minmax(0, 1fr) 290px;
+  }
+}
+
+@media (max-width: 900px) {
+  .personContent {
+    grid-template-columns: minmax(0, 1fr) 270px;
+  }
+}
+
+@media (max-width: 680px) {
+  .personContent {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .personHero {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .personHero .cardAvatar {
+    width: 54px;
+    height: 54px;
+    font-size: 16px;
+  }
+
+  .personIdentity h1 {
+    font-size: 22px;
+    line-height: 27px;
+  }
+
+  .personIdentity > p {
+    font-size: 11px;
+  }
+
+  .personIdentity .verifiedLine {
+    font-size: 10px;
+  }
+
+  .personHero > .cardAction {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 0;
+  }
+
+  .personAbout,
+  .personAside {
+    padding: 18px;
+  }
+}
+.personHero {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding-inline: 0;
+}
+.evidenceRow {
+  display: block;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.availabilitySlot {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.personAbout,
+.personAside {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.personAbout,
+.personAside {
+  padding: var(--space-6) 0;
+}
+.personContent {
+  gap: var(--space-8);
+}

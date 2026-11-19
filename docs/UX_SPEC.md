@@ -213,6 +213,25 @@ What to expect
 
 States: mentor changed time, learner declines time, mentor withdrew. Each needs its own copy and a path back to waiting. Contact details are revealed only after the learner confirms and the mentor has accepted.
 
+### L3 → L4 creation rule (approved 2026-11-19)
+
+Arsen approved automatic session creation when the learner confirms the mentor's
+proposed time, after the operator accepted the match and the mentor accepted it.
+The confirmation, request/brief/match updates, session creation and existing
+`match_accepted` event succeed or roll back together. One match has one session;
+repeated or concurrent confirmations must not create duplicates.
+
+The session starts in `scheduled` state with `starts_at` copied from the accepted
+proposal. The operator adds Google Meet later; `meet_url` is initially missing.
+Actual completion is unknown, so `ends_at` remains missing. The current L4 plan
+is identified by `l4-v1`; this identifier does not change its existing copy or
+45-minute time box. No new event name is introduced by scheduling.
+
+This approves only the creation step of R07. Link issuance/expiry/delivery,
+completion, actual duration, no-show, cancellation/rematching and feedback
+creation remain separate decisions/work. Do not issue participant-wide links
+or mark a session completed as a side effect of confirmation.
+
 ### 6.1 Mentor competence card (shared component)
 
 Facts only, no stars, no fake badges:

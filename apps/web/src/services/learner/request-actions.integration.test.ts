@@ -8,7 +8,12 @@ import {
   mentorBriefs,
   mentorProfiles,
   stateTransitions,
+  sessions,
 } from "@/db/schema";
+import {
+  ensureScheduledSession,
+  SESSION_TEMPLATE_VERSION,
+} from "../sessions/schedule-session";
 import { createParticipant } from "@/domain/participants";
 import {
   toKazakhstanDateInput,
@@ -127,7 +132,13 @@ async function snapshot(fixture: Fixture) {
     .select()
     .from(stateTransitions)
     .where(eq(stateTransitions.subjectId, fixture.request.id));
-  return { request, match, brief, eventRows, transitions };
+  const sessionRows = fixture.match
+    ? await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.matchId, fixture.match.id))
+    : [];
+  return { request, match, brief, eventRows, transitions, sessionRows };
 }
 
 const names = (rows: { eventName: string }[]) =>
@@ -160,6 +171,15 @@ describe.skipIf(!databaseAvailable)("learner request actions", () => {
       expect(accepted).toHaveLength(1);
       expect(accepted[0].templateVersion).toBe("d2-test-v1");
       expect(accepted[0].dataOrigin).toBe(dataOrigin);
+      expect(state.sessionRows).toHaveLength(1);
+      expect(state.sessionRows[0]).toMatchObject({
+        matchId: fixture.match!.id,
+        startsAt: fixture.slot,
+        endsAt: null,
+        meetUrl: null,
+        completionState: "scheduled",
+        templateVersion: SESSION_TEMPLATE_VERSION,
+      });
     });
 
     it("lets exactly one of two concurrent confirms win", async () => {
@@ -174,6 +194,7 @@ describe.skipIf(!databaseAvailable)("learner request actions", () => {
       ]);
 
       const state = await snapshot(fixture);
+      expect(state.sessionRows).toHaveLength(1);
       expect(
         names(state.eventRows).filter((n) => n === "match_accepted"),
       ).toHaveLength(1);
@@ -191,8 +212,62 @@ describe.skipIf(!databaseAvailable)("learner request actions", () => {
         error: "state_changed",
       });
       const after = await snapshot(fixture);
+      expect(after.sessionRows).toEqual(before.sessionRows);
       expect(after.eventRows).toHaveLength(before.eventRows.length);
       expect(after.transitions).toHaveLength(before.transitions.length);
+    });
+
+    it("rolls the session and confirmation back if recording the event fails", async () => {
+      const fixture = await createFixture({ withProposal: true });
+      await expect(
+        confirmLearnerMatch(db, {
+          ...context(fixture),
+          dataOrigin: "invalid_origin" as never,
+        }),
+      ).rejects.toThrow();
+      const state = await snapshot(fixture);
+      expect(state.request.status).toBe("matched");
+      expect(state.match?.status).toBe("proposed");
+      expect(state.match?.learnerAcceptedAt).toBeNull();
+      expect(state.brief?.status).toBe("slot_proposed");
+      expect(state.sessionRows).toHaveLength(0);
+      expect(state.eventRows).toHaveLength(0);
+      expect(state.transitions).toHaveLength(0);
+    });
+
+    it("refuses an incomplete proposal without a slot", async () => {
+      const fixture = await createFixture({ withProposal: true });
+      await db
+        .update(matches)
+        .set({ proposedSlotAt: null })
+        .where(eq(matches.id, fixture.match!.id));
+      await expect(confirmLearnerMatch(db, context(fixture))).resolves.toEqual({
+        ok: false,
+        error: "state_changed",
+      });
+      const state = await snapshot(fixture);
+      expect(state.request.status).toBe("matched");
+      expect(state.sessionRows).toHaveLength(0);
+      expect(state.eventRows).toHaveLength(0);
+    });
+
+    it("reuses the scheduled session without overwriting the operator's Meet URL", async () => {
+      const fixture = await createFixture({ withProposal: true });
+      await expect(
+        db.transaction((tx) => ensureScheduledSession(tx, fixture.match!.id)),
+      ).rejects.toThrow("accepted_match_with_slot_required");
+      await confirmLearnerMatch(db, context(fixture));
+      const [created] = (await snapshot(fixture)).sessionRows;
+      await db
+        .update(sessions)
+        .set({ meetUrl: "https://meet.google.com/synthetic-room" })
+        .where(eq(sessions.id, created.id));
+      const again = await db.transaction((tx) =>
+        ensureScheduledSession(tx, fixture.match!.id),
+      );
+      expect(again.id).toBe(created.id);
+      expect(again.meetUrl).toBe("https://meet.google.com/synthetic-room");
+      expect((await snapshot(fixture)).sessionRows).toHaveLength(1);
     });
 
     it("refuses to confirm a proposal the mentor already withdrew", async () => {
@@ -308,6 +383,7 @@ describe.skipIf(!databaseAvailable)("learner request actions", () => {
         ["match_accepted", "match_declined"].includes(name),
       );
       expect(decisionEvents).toHaveLength(1);
+      expect(state.sessionRows).toHaveLength(confirmed.ok ? 1 : 0);
       if (confirmed.ok) {
         expect(state.request.status).toBe("session_scheduled");
         expect(state.match?.status).toBe("accepted");

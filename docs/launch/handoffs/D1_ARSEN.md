@@ -477,6 +477,49 @@
   прошёл полностью, включая production build, Playwright и upgrade миграций.
 - **Доставка:** код и запись доступны в main. G0/G1 целиком не завершены.
 
+<a id="d1-h018"></a>
+
+## D1-H018 — надёжная сессия и действия аккаунта в кабинете
+
+- **Автор:** D1 / Арсен. **Адресаты:** все D2–D6.
+- **Проверено:** 19 ноября 2026. **Статус:** [PR №19](https://github.com/Arsench1kk/SkillSwap/pull/19) объединён в main
+  коммитом `e3540df84fa47bcdb516e1808f373efe3a6bceea`.
+- **Код:** `codex/arsen-workspace-auth-state`, head
+  `cda749326f2ca00140f06414fec499d24f591db2`; base main
+  `407adc8564f4e7df4ff73b3d7d80d4431f9ad06d`.
+- **Поведение:** `apps/web/app/prototype/prototype-app.tsx` разделяет проверку
+  сессии и PrototypeWorkspace. Pending не показывает демо; error показывает
+  существующее authRequestError и retry через Better Auth refetch. Если библиотека
+  сохранила прежнюю сессию при временном сбое, workspace остаётся смонтированным,
+  но скрытым, чтобы сохранить локальные черновики. Другая account identity
+  получает новый экземпляр workspace. Только успешный signed-out открывает демо.
+- **Действия:** activeRole меняется в UI после успешного Better Auth updateUser.
+  До подтверждения остаётся прежняя роль. Role-save и signout используют общий
+  in-flight guard, отключают конкурирующие кнопки и обрабатывают returned/thrown
+  errors существующими сообщениями. Не отключать guard и не возвращать
+  оптимистичное переключение до server confirmation: запросы зависят от роли БД.
+- **Действие получателей:** D2–D5 учитывать, что feature-компоненты монтируются
+  после разрешения начальной сессии. Временная auth error не является пустой
+  выдачей или demo. D6 сохранить auth regression в общем CI. Новых API/DTO,
+  схемы, событий, строк, CSS или зависимостей нет; серверные guards не менялись.
+- **Проверки:** lint/typecheck/format; 10 целевых unit/integration тестов
+  account-session на отдельном PostgreSQL 16. Пять выбранных UI сценариев прошли:
+  три новых в `apps/web/e2e/account/workspace-auth.spec.ts` и существующие demo
+  journey/account request. После уточнения alert-селектора повторён только один
+  сценарий, остальные не повторялись. Первый старт dev-сервера был остановлен
+  Next.js; результаты того прогона не засчитаны. UI на 360 px, keyboard retry,
+  busy/disabled и error recovery проверены. Shared copy/styles переиспользованы,
+  React/manual accessibility review выполнен; Impeccable отсутствует.
+  [Полный CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/44476912559)
+  прошёл с первого прогона: 270 unit/integration и один существующий TODO,
+  70 Playwright сценариев, production build, чистые миграции и upgrade от base.
+- **Темп работы:** в AGENTS.md публикуется согласованное Арсеном правило
+  соразмерных проверок: focused local checks, полный suite один раз в CI,
+  повтор только после изменения/конкретного сбоя/неразрешённого риска.
+- **Граница:** интеграция AUTH-1–4 с /prototype; G0 ещё открыт, новых экранов
+  и продуктовых правил G1 нет. Реальная доставка email этим шагом не проверялась.
+- **Доставка:** код, эта передача и правило проверок доступны в main.
+
 ## Совместная проверка и общие ограничения
 
 Четыре блока объединены только в локальной ветке `codex/arsen-integration-check`:

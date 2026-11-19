@@ -520,6 +520,55 @@
   и продуктовых правил G1 нет. Реальная доставка email этим шагом не проверялась.
 - **Доставка:** код, эта передача и правило проверок доступны в main.
 
+<a id="d1-h019"></a>
+
+## D1-H019 — создание встречи при подтверждении учеником
+
+- **Автор:** D1 / Арсен, по разрешению выполнять блокирующие задачи коллег.
+  **Адресаты:** D2, D3, D4, D5, D6.
+- **Проверено:** 19 ноября 2026. **Статус:** [PR №20](https://github.com/Arsench1kk/SkillSwap/pull/20) объединён в main
+  коммитом `9f5a96a5cbc24532df50b93716e1ce29587f8987`.
+- **Код:** `codex/arsen-confirm-session`, head
+  `e68cc155f1ca0ed31d88a25e6d527f43b113a6b5`; base main
+  `cbb4f523bd917c1f2bc5047bfd496bd799762c7b`.
+- **Решение:** Арсен 19 ноября выбрал автоматическое создание встречи после
+  подтверждения предложенного времени учеником; оператор добавляет Meet позже.
+  Решение записано в docs/UX_SPEC.md, «L3 → L4 creation rule», и DECISIONS.md.
+  Остальные вопросы R07 не утверждены этим выбором.
+- **Контракт D4:** `apps/web/src/services/sessions/schedule-session.ts` —
+  `ensureScheduledSession(tx: DatabaseTransaction, matchId: string)` и
+  `SESSION_TEMPLATE_VERSION` (`l4-v1`, существующий план L4 без изменения copy).
+  Сервис принимает caller transaction, проверяет принятую оператором/обоими
+  участниками пару и slot, блокирует match и создаёт/возвращает одну sessions row.
+  На повторе не перезаписывает данные оператора или lifecycle-состояние.
+  Это внутренняя серверная команда; авторизацию выполняет caller до вызова.
+- **Подключение D2:** `apps/web/src/services/learner/request-actions.ts`,
+  `confirmLearnerMatch` вызывает сервис после принятия match, до match_accepted,
+  в той же транзакции. HTTP/result контракт сохранён; неполное предложение без
+  slot возвращает state_changed. Порядок locks: brief → request → match → session.
+  Существующий unique index sessions.match_id сохранён; новой миграции нет.
+- **Данные:** scheduled, startsAt из предложенного времени, endsAt/meetUrl null.
+  Длительность не выдумывается; контактные данные и новые события не добавлены.
+  match_accepted сохраняет version brief; будущие L4 события берут version session.
+- **Действие:** D2 сохранить вызов в общей транзакции. D4 владеет сервисом и
+  продолжает lifecycle/ссылки; D5 использует его после проверки прав вместо
+  второго INSERT sessions. D6 учитывает интеграционные регрессии. Никаких adopted
+  отметок за получателей нет; их реализация не переписывалась целиком.
+- **Проверки:** lint/typecheck, форматирование app sources; 21 целевой PostgreSQL
+  integration test passed, включая гонки confirm/decline, повтор, откат при
+  отказе recordEvent, missing slot и сохранение Meet при повторном ensure.
+  Один существующий L3 smoke на 360 px прошёл после dev-server shutdown retry.
+  [Полный CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/44478548007)
+  прошёл с первого прогона: 273 unit/integration и один существующий TODO,
+  70 Playwright сценариев, production build и проверки миграций.
+  Существующее форматирование старых таблиц
+  root UX_SPEC сохранено. Новых зависимостей, UI, строк или схемы нет.
+- **Ограничения:** закрыта часть A03 о создании sessions, не весь путь встреч.
+  Нет backfill старых подтверждений, новых links/feedback, completion/no-show,
+  cancellation/rematching или доставки. A04 session-scoped links и остальные
+  части R07 остаются открытыми; наличие записи не означает готовую participant URL.
+- **Доставка:** код, утверждённая часть R07 и эта передача доступны в main.
+
 ## Совместная проверка и общие ограничения
 
 Четыре блока объединены только в локальной ветке `codex/arsen-integration-check`:

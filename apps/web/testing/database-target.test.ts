@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import { Client } from "pg";
+import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_LOCAL_TEST_DATABASE_URL,
   UnsafeTestDatabaseError,
@@ -27,10 +29,84 @@ describe("assertSafeTestDatabaseUrl", () => {
     ["managed provider", "postgres://u:p@ep-x.neon.tech/skillswap_test"],
     ["wrong protocol", "mysql://u:p@localhost/skillswap_test"],
     ["not a URL", "skillswap_test"],
+    [
+      "malformed database encoding",
+      "postgres://u:p@localhost/skillswap_test_%ZZ",
+    ],
+    [
+      "malformed password encoding",
+      "postgres://u:%ZZ@localhost/skillswap_test",
+    ],
   ])("rejects %s", (_label, url) => {
     expect(() => assertSafeTestDatabaseUrl(url, "DATABASE_URL")).toThrow(
       UnsafeTestDatabaseError,
     );
+  });
+
+  it.each([
+    "host=remote.example.test",
+    "host=/tmp/postgresql",
+    "host=%2Ftmp%2Fpostgresql",
+    "port=6543",
+    "%68ost=remote.example.test",
+    "host=localhost&host=remote.example.test",
+    "port=5432&port=6543",
+    "connectionString=postgres%3A%2F%2Fremote.example.test%2Fskillswap_test",
+    "sslcert=/tmp/private-cert",
+    "sslmode=disable",
+  ])("rejects query parameters before pg can interpret them: %s", (query) => {
+    expect(() =>
+      assertSafeTestDatabaseUrl(`${local}?${query}`, "TEST_DATABASE_URL"),
+    ).toThrow(UnsafeTestDatabaseError);
+  });
+
+  it("keeps the verified default port even when PGPORT is set", () => {
+    vi.stubEnv("PGPORT", "6543");
+    try {
+      const target = assertSafeTestDatabaseUrl(
+        "postgres://u:p@localhost/skillswap_test",
+        "TEST_DATABASE_URL",
+      );
+      const client = new Client({ connectionString: target.url });
+      expect(client.port).toBe(Number(target.port));
+      expect(client.port).toBe(5432);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it.each([
+    "postgres://u:p@localhost:5432/skillswap_test",
+    "postgresql://u:p@127.0.0.1:5433/test_skillswap",
+    "postgres://u:p@[::1]:5433/skillswap-test-e2e",
+    "postgres://u:p@localhost/skillswap_test_other%2Fother",
+  ])("checks the same target pg will use without connecting: %s", (url) => {
+    const target = assertSafeTestDatabaseUrl(url, "TEST_DATABASE_URL");
+    const client = new Client({ connectionString: target.url });
+    expect(client.host).toBe(target.host.replace(/^\[(.+)\]$/, "$1"));
+    expect(client.port).toBe(Number(target.port));
+    expect(client.database).toBe(target.database);
+  });
+
+  it("refuses reset before constructing a database client", () => {
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "testing/prepare-database.ts", "--reset"],
+      {
+        encoding: "utf8",
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          TEST_DATABASE_URL:
+            "postgres://u:reset-secret@localhost/skillswap_test?host=remote.example.test",
+        },
+      },
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("must not contain query parameters");
+    expect(result.stderr).not.toContain("reset-secret");
+    expect(result.stdout).not.toContain("[test-db] target");
   });
 
   it("allows an explicitly listed CI service host", () => {

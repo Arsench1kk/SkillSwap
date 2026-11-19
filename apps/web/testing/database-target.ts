@@ -79,10 +79,30 @@ export function assertSafeTestDatabaseUrl(
       `${source} must use the postgres:// protocol.`,
     );
   }
+  // pg accepts query keys as connection options, including host/port and even
+  // a nested connectionString. Test tools deliberately support no URL query
+  // options: reject them before pg can read files, connect or reset a database.
+  if (parsed.search) {
+    throw new UnsafeTestDatabaseError(
+      `${source} must not contain query parameters; put host and port in the URL authority.`,
+    );
+  }
+  // pg otherwise takes an omitted port from PGPORT, not necessarily 5432.
+  parsed.port ||= "5432";
   const host = parsed.hostname.toLowerCase();
-  const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+  let database: string;
+  try {
+    // Match pg-connection-string: reserved URI characters remain escaped.
+    database = decodeURI(parsed.pathname.replace(/^\//, ""));
+    decodeURIComponent(parsed.username);
+    decodeURIComponent(parsed.password);
+  } catch {
+    throw new UnsafeTestDatabaseError(
+      `${source} contains invalid URL encoding.`,
+    );
+  }
   const target: DatabaseTarget = {
-    url,
+    url: parsed.toString(),
     host,
     port: parsed.port || "5432",
     database,

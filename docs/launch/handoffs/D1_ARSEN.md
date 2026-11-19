@@ -443,7 +443,8 @@
 ## D1-H017 — выделение демо-карточки наставника
 
 - **Автор:** D1 / Арсен. **Адресаты:** D2 / Руслан, D3 / Амир, D6 / Андрей.
-- **Проверено:** 19 ноября 2026. **Статус:** Ready, [PR №18](https://github.com/Arsench1kk/SkillSwap/pull/18), CI ожидается.
+- **Проверено:** 19 ноября 2026. **Статус:** [PR №18](https://github.com/Arsench1kk/SkillSwap/pull/18) объединён в main
+  коммитом `fc5ea6e7382ef1a04bf694ea0a0dbbbf75db7ceb`.
 - **Код:** `codex/arsen-extract-mentor-card`, head
   `4c947690dcba09962bc815cb5664bfc681163336`; base main
   `4d5baab9a905eed83e10640508fcc598f2844510` (включает PR №13/D1-H016).
@@ -471,9 +472,10 @@
   контактов, клавиатурный переход к заявке, отмену и возврат к результатам.
   Визуально проверены 360/1440 px без overflow. React review выполнен;
   Impeccable и agent-browser отсутствуют, использован Playwright/manual critique.
-  Новых зависимостей, строк, событий или миграций нет. Production build — в CI.
-- **Доставка:** запись публикуется отдельно в main. Код пока в PR №18;
-  G0/G1 целиком не завершены.
+  Новых зависимостей, строк, событий или миграций нет.
+  [GitHub CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/44474584239)
+  прошёл полностью, включая production build, Playwright и upgrade миграций.
+- **Доставка:** код и запись доступны в main. G0/G1 целиком не завершены.
 
 ## Совместная проверка и общие ограничения
 

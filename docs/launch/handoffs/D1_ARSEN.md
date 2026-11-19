@@ -314,7 +314,7 @@
 
 - **Автор:** D1 / Арсен. **Адресаты:** D6, D2–D5 для учёта статуса тестовой базы.
 - **Проверено:** 18 ноября 2026. **Статус:** reviewed, принятие D6-H001 отложено
-  до исправления защиты назначения. [Draft PR №13](https://github.com/Arsench1kk/SkillSwap/pull/13).
+  до исправления защиты назначения. Блокер снят 19 ноября через D1-H016. [PR №13](https://github.com/Arsench1kk/SkillSwap/pull/13).
 - **Код:** ветка Андрея `codex/andrey-d6-test-ci`, head
   `4fe8c0867e6532544a3a60302b553607705b2253`. Base
   `edf813505718cbe8d8f709c3cf2fd3de5b8ea47c`.
@@ -403,12 +403,15 @@
 - **Автор:** D1 / Арсен, по явному разрешению владельца продукта выполнять
   блокирующие задачи коллег. **Адресаты:** D6 и все D1–D5.
 - **Проверено:** 19 ноября 2026. **Статус:** исправление опубликовано в
-  [PR №17](https://github.com/Arsench1kk/SkillSwap/pull/17), объединение ожидается.
-  Уточняет блокер D1-H012; инфраструктура пока в [PR №13](https://github.com/Arsench1kk/SkillSwap/pull/13).
+  [PR №17](https://github.com/Arsench1kk/SkillSwap/pull/17) объединён в ветку D6,
+  [PR №13](https://github.com/Arsench1kk/SkillSwap/pull/13) объединён в main
+  коммитом `9f68817ed95b43d4a95f833ff052d8141ea76df0`. Блокер D1-H012 снят.
 - **Код:** `codex/arsen-test-database-guard`, head
   `1573c92fe492bb50bccc2d70fc4467143283c23f`; base — ветка D6
   `codex/andrey-d6-test-ci` на `4fe8c0867e6532544a3a60302b553607705b2253`.
-  PR №17 направлен в ветку D6, а не напрямую в main.
+  PR №17 направлен в ветку D6, а не напрямую в main. Перед merge PR №13
+  ветка обновлена текущим main без конфликтов; проверен head
+  `23f6028e1aed4646532d86bb89c7edf1411f9a7f`.
 - **Контракт:** `apps/web/testing/database-target.ts` теперь отклоняет все query
   параметры URL до создания pg.Client. Хост и порт задаются только в authority;
   SSL query options тоже не поддерживаются для тестовой БД. Отсутствующий порт
@@ -425,10 +428,15 @@
   host/port в authority и отдельный сегмент test в имени БД; не передавать query.
 - **Проверки:** format:check, lint, typecheck; 270 unit/integration passed и один
   существующий TODO на отдельном PostgreSQL 16. prepare/reset и чистые миграции
-  прошли. Полные E2E и production build выполняются в GitHub CI; их результат
-  ещё ожидается. Новых зависимостей, миграций, экранов, строк или событий нет.
-- **Доставка:** эта запись публикуется отдельно в main. Код до merge PR №13
-  доступен только через ветки/PR, а не через main. G0/G1 целиком не закрываются.
+  прошли. [CI исправления](https://github.com/Arsench1kk/SkillSwap/actions/runs/44426823024)
+  прошёл: 63 E2E и production build.
+  [CI итоговой интеграции](https://github.com/Arsench1kk/SkillSwap/actions/runs/44427298823)
+  прошёл: 270 unit/integration и один существующий TODO, 66 E2E, production build,
+  чистые миграции и upgrade от base. Дополнительных зависимостей, миграций,
+  экранов, строк или событий в исправлении нет.
+- **Доставка:** код и эта запись доступны в main. D6-H001 принят D1
+  с исправлением D1-H016; остальные stacked-передачи D6 этим не приняты.
+  G0/G1 целиком не закрываются.
 
 ## Совместная проверка и общие ограничения
 
@@ -442,6 +450,12 @@
 сверять по head SHA; локальные результаты не являются результатом GitHub CI.
 
 ## Прочитанные и применённые передачи
+
+- D6-H001 — adopted 19 ноября 2026 через PR №13 с исправлением D1-H016.
+  Исходный head `4fe8c0867e6532544a3a60302b553607705b2253`, принятый head
+  `23f6028e1aed4646532d86bb89c7edf1411f9a7f`. Общие fixtures и test runner
+  теперь используют проверенный нормализованный TEST_DATABASE_URL.
+  Следующие ветки D6 должны включить это исправление; принятие за D6 не отмечено.
 
 - [D4-H001](https://github.com/Arsench1kk/SkillSwap/pull/9) — reviewed 13 ноября 2026. Проверен [PR №8](https://github.com/Arsench1kk/SkillSwap/pull/8) на
   `de5b05bbec9c91787bf1ae106c5b25f2e47a2c3f`. Страница и API L5 используют

@@ -118,7 +118,8 @@ function assertRequestActorCanTransition(
   if (actor.type === "system") {
     if (
       ["completed", "no_show", "expired"].includes(to) ||
-      (from === "submitted" && ["eligible", "ineligible"].includes(to))
+      (from === "submitted" && ["eligible", "ineligible"].includes(to)) ||
+      (from === "matching" && to === "matched")
     )
       return;
     throw new Error(

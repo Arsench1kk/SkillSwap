@@ -10,7 +10,10 @@ import {
 import { containsContactData, recordEvent } from "@/domain/events";
 import { currentDataOrigin } from "@/domain/mentor-brief-page";
 import { verifyPrivateLink } from "@/domain/private-links";
-import { transitionMentorBrief } from "@/domain/state-machines";
+import {
+  transitionLearnerRequest,
+  transitionMentorBrief,
+} from "@/domain/state-machines";
 import { allowRateLimitedAttempt } from "@/domain/rate-limit";
 import { kazakhstanLocalTimeToUtc } from "@/domain/time";
 import { t } from "@/messages/en";
@@ -94,7 +97,6 @@ export async function POST(request: Request) {
         status: mentorBriefs.status,
         requestStatus: learnerRequests.status,
         deadlineAt: learnerRequests.deadlineAt,
-        preferredWindows: learnerRequests.preferredWindows,
         mentorRole: participants.role,
         mentorStatus: participants.status,
       })
@@ -116,9 +118,11 @@ export async function POST(request: Request) {
       brief.mentorStatus !== "active"
     )
       return unavailable(410);
+    const now = new Date();
     if (
       brief.requestStatus === "cancelled" ||
-      brief.answerBy <= new Date() ||
+      brief.answerBy <= now ||
+      brief.deadlineAt <= now ||
       ["confirmed", "completed", "no_reply", "expired", "withdrawn"].includes(
         brief.status,
       )
@@ -207,27 +211,60 @@ export async function POST(request: Request) {
     }
     if (input.action === "withdraw") return unavailable(409);
 
-    let proposedAt: Date | undefined;
-    if (input.windowIndex === "other") {
-      if (!input.suggestedAt) return unavailable(400);
-      const localProposal = kazakhstanLocalTimeToUtc(input.suggestedAt);
-      if (!localProposal) return unavailable(400);
-      proposedAt = localProposal;
-    } else if (input.windowIndex && /^\d+$/.test(input.windowIndex)) {
-      const window = brief.preferredWindows[Number(input.windowIndex)];
-      if (window) proposedAt = new Date(window.startUtc);
-    }
-    if (
-      !proposedAt ||
-      Number.isNaN(proposedAt.getTime()) ||
-      proposedAt <= new Date() ||
-      proposedAt > brief.deadlineAt
-    )
-      return unavailable(400);
+    const result = await db.transaction(async (tx) => {
+      const [currentBrief] = await tx
+        .select({
+          status: mentorBriefs.status,
+          answerBy: mentorBriefs.answerBy,
+        })
+        .from(mentorBriefs)
+        .where(eq(mentorBriefs.id, brief.id))
+        .for("update");
+      const [currentRequest] = await tx
+        .select({
+          status: learnerRequests.status,
+          deadlineAt: learnerRequests.deadlineAt,
+          windows: learnerRequests.preferredWindows,
+        })
+        .from(learnerRequests)
+        .where(eq(learnerRequests.id, brief.requestId))
+        .for("update");
+      const [currentMatch] = await tx
+        .select({
+          humanDecision: matches.humanDecision,
+          status: matches.status,
+          mentorAcceptedAt: matches.mentorAcceptedAt,
+        })
+        .from(matches)
+        .where(eq(matches.id, match.id))
+        .for("update");
+      const at = new Date();
+      if (
+        !currentBrief ||
+        currentBrief.answerBy <= at ||
+        !currentRequest ||
+        currentRequest.deadlineAt <= at ||
+        !currentMatch ||
+        !["matching", "matched"].includes(currentRequest.status) ||
+        !["proposed", "declined"].includes(currentMatch.status)
+      )
+        throw new Error("state_conflict");
 
-    const at = new Date();
-    await db.transaction(async (tx) => {
-      if (brief.status === "invited") {
+      let proposedAt: Date | null = null;
+      if (input.windowIndex === "other" && input.suggestedAt) {
+        proposedAt = kazakhstanLocalTimeToUtc(input.suggestedAt);
+      } else if (input.windowIndex && /^\d+$/.test(input.windowIndex)) {
+        const window = currentRequest.windows[Number(input.windowIndex)];
+        if (window) proposedAt = new Date(window.startUtc);
+      }
+      if (
+        !proposedAt ||
+        Number.isNaN(proposedAt.getTime()) ||
+        proposedAt <= at ||
+        proposedAt > currentRequest.deadlineAt
+      )
+        return "invalid_time" as const;
+      if (currentBrief.status === "invited") {
         const viewed = await transitionMentorBrief(tx, brief.id, "viewed", {
           actor: {
             type: "participant",
@@ -238,7 +275,10 @@ export async function POST(request: Request) {
         });
         if (!viewed.ok) throw new Error("state_conflict");
       }
-      if (brief.status === "invited" || brief.status === "viewed") {
+      if (
+        currentBrief.status === "invited" ||
+        currentBrief.status === "viewed"
+      ) {
         const accepted = await transitionMentorBrief(tx, brief.id, "accepted", {
           actor: {
             type: "participant",
@@ -249,7 +289,7 @@ export async function POST(request: Request) {
         });
         if (!accepted.ok) throw new Error("state_conflict");
       }
-      if (["invited", "viewed", "accepted"].includes(brief.status)) {
+      if (["invited", "viewed", "accepted"].includes(currentBrief.status)) {
         const proposed = await transitionMentorBrief(
           tx,
           brief.id,
@@ -264,7 +304,7 @@ export async function POST(request: Request) {
           },
         );
         if (!proposed.ok) throw new Error("state_conflict");
-      } else if (brief.status === "declined") {
+      } else if (currentBrief.status === "declined") {
         const proposed = await transitionMentorBrief(
           tx,
           brief.id,
@@ -279,15 +319,32 @@ export async function POST(request: Request) {
           },
         );
         if (!proposed.ok) throw new Error("state_conflict");
-      } else if (brief.status !== "slot_proposed") {
+      } else if (currentBrief.status !== "slot_proposed") {
         throw new Error("state_conflict");
+      }
+
+      if (currentRequest.status === "matching") {
+        if (currentMatch.humanDecision !== "accepted")
+          throw new Error("state_conflict");
+        const matched = await transitionLearnerRequest(
+          tx,
+          brief.requestId,
+          "matched",
+          {
+            actor: { type: "system" },
+            source: "mentor_brief_page",
+            reasonCode: "mentor_proposed_time",
+            at,
+          },
+        );
+        if (!matched.ok) throw new Error("state_conflict");
       }
 
       await tx
         .update(matches)
         .set({
           proposedSlotAt: proposedAt,
-          mentorAcceptedAt: match.mentorAcceptedAt ?? at,
+          mentorAcceptedAt: currentMatch.mentorAcceptedAt ?? at,
           status: "proposed",
         })
         .where(eq(matches.id, match.id));
@@ -300,6 +357,7 @@ export async function POST(request: Request) {
         timestampUtc: at,
       });
     });
+    if (result === "invalid_time") return unavailable(400);
     return Response.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && error.message === "state_conflict")

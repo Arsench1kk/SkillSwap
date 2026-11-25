@@ -113,8 +113,9 @@ export async function getMentorBriefPage(
   )
     return expired;
   if (row.requestStatus === "cancelled") return { state: "cancelled", token };
-  if (row.briefStatus === "expired" || row.answerBy <= new Date())
-    return expired;
+  const answerBy =
+    row.deadlineAt < row.answerBy ? row.deadlineAt : row.answerBy;
+  if (row.briefStatus === "expired" || answerBy <= new Date()) return expired;
 
   if (row.briefStatus === "invited") {
     const result = await transitionMentorBrief(db, row.briefId, "viewed", {
@@ -190,7 +191,7 @@ export async function getMentorBriefPage(
     taskDescription: safeBriefText(row.taskDescription),
     triedAlready: safeBriefText(row.triedAlready),
     deadline: formatKazakhstanTime(row.deadlineAt, "en"),
-    answerBy: formatKazakhstanTime(row.answerBy, "en"),
+    answerBy: formatKazakhstanTime(answerBy, "en"),
     giveBack: row.giveBack ? safeBriefText(row.giveBack) : null,
     windows,
     proposedSlot,

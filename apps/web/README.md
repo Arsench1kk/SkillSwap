@@ -19,7 +19,7 @@ The default local PostgreSQL port is `5433`. Never commit `.env` or real partici
 | Table                  | What it stores                                                                                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `participants`         | An anonymised role-prefixed participant ID, role, consent timestamps, optional campus/year, and active/withdrawn status.                                                                   |
-| `account_participants` | Links an authenticated account to a separate anonymised learner or mentor participant ID. Account IDs stay out of requests, contacts, and event rows.                                     |
+| `account_participants` | Links an authenticated account to a separate anonymised learner or mentor participant ID. Account IDs stay out of requests, contacts, and event rows.                                      |
 | `participant_contacts` | Phone or Telegram contact values in a separate PII table. Event records do not include or join this data.                                                                                  |
 | `learner_requests`     | The learner's task category, task and attempts, deadline, meeting windows, give-back offer, and request status.                                                                            |
 | `mentor_profiles`      | A mentor's display name (shown only after a match), short experience statement, and availability windows.                                                                                  |
@@ -33,10 +33,10 @@ The default local PostgreSQL port is `5433`. Never commit `.env` or real partici
 | `link_tokens`          | SHA-256 token hashes, purpose, text subject ID, expiry, and revocation; text IDs support both UUID entities and anonymised participant IDs. Raw tokens are returned once and never stored. |
 | `rate_limit_counters`  | Hashed rate-limit keys, time windows, counts, and expiry.                                                                                                                                  |
 | `reports`              | Private problem-report category and optional description, kept outside the event log.                                                                                                      |
-| `user`                 | Better Auth account identity, email verification state, and the account's current learner/mentor workspace role. Kept separate from participant events and contacts.                         |
-| `session`              | Better Auth login sessions, linked to a user and expired by timestamp.                                                                                                                       |
-| `account`              | Better Auth credential/provider records; password credentials are stored using Better Auth's password hashing.                                                                              |
-| `verification`         | Short-lived Better Auth email-verification and password-reset challenges.                                                                                                                    |
+| `user`                 | Better Auth account identity, email verification state, and the account's current learner/mentor workspace role. Kept separate from participant events and contacts.                       |
+| `session`              | Better Auth login sessions, linked to a user and expired by timestamp.                                                                                                                     |
+| `account`              | Better Auth credential/provider records; password credentials are stored using Better Auth's password hashing.                                                                             |
+| `verification`         | Short-lived Better Auth email-verification and password-reset challenges.                                                                                                                  |
 
 All dates are stored as PostgreSQL `timestamptz`/UTC. Use `formatKazakhstanTime(date, locale)` for display in `Asia/Almaty` with a localized zone label.
 
@@ -54,6 +54,32 @@ npm run typecheck
 npm test
 npm run e2e
 ```
+
+## Tests and the test database
+
+Automated checks write fixtures, so they use a separate local database that is
+recreated freely. `testing/database-target.ts` resolves it from an explicit
+environment (`TEST_DATABASE_URL`, then `DATABASE_URL`; `.env*` files are not
+used for this) and **refuses** any host other than localhost or any database
+name without a separate `test` segment, before a pool, fixture or cleanup runs.
+
+```sh
+docker compose up -d db
+npm run db:test:prepare   # create skillswap_test if missing and migrate it
+npm run test:db           # unit + all PostgreSQL integration suites
+npm run e2e               # app server and fixtures on the same test database
+npm run db:test:reset     # drop, recreate and migrate (removes synthetic data)
+```
+
+Without a configured database, plain `npm test` still runs and prints a warning
+that the PostgreSQL suites were skipped; in CI (`CI=true`) a missing database is
+an error. E2E starts its own dev server on port 3100 with the test database and
+does not reuse a running server unless `E2E_REUSE_SERVER=1`.
+
+CI (`.github/workflows/ci.yml`) runs four independent jobs: format/lint/typecheck;
+clean migrations, unit/integration and a from-scratch production build; an
+upgrade migration from the PR base; Playwright E2E. Each job has its own runner
+and database, so build output, dev output and test artifacts do not collide.
 
 The rehearsal seed contains only synthetic rows and sets `data_origin = rehearsal` on every event it creates. Rehearsal data must never be analyzed as real demand.
 
@@ -74,4 +100,5 @@ Schedule `npm run db:expire-feedback` as a recurring server-side job so unanswer
 ## Accounts and email
 
 Registration and email/password sign-in use Better Auth with the existing PostgreSQL/Drizzle database. Email verification is required before sign-in; password reset and verification messages use the Resend HTTP API. Copy `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `RESEND_API_KEY`, and `AUTH_EMAIL_FROM` from `.env.example` into a local/private environment. Generate a unique secret (for example `openssl rand -base64 32`) and configure a sender verified by Resend. Never commit the secret or API key. Without the Resend key and sender, auth routes return an explicit email-configuration failure; they do not fake successful delivery.
+
 - L5 allows partial answers, preserves them, and does not allow overwriting an already saved field. A production scheduler and cadence for `db:expire-feedback` must be configured before the pilot.

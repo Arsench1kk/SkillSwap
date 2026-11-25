@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
 import { events, participants } from "@/db/schema";
 
@@ -47,24 +47,29 @@ const eventInputSchema = z
         message: "Use a non-identifying code",
       });
     }
-    if (event.note && containsContactData(event.note)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["note"],
-        message: "Notes cannot contain contact details",
-      });
+    for (const field of ["note", "reasonCode", "sourceChannel"] as const) {
+      const value = event[field];
+      if (value && containsContactData(value)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [field],
+          message: "Event metadata cannot contain contact details",
+        });
+      }
     }
   });
 
 const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-const handlePattern = /(?:^|\s)@[a-zA-Z0-9_]{2,}/;
+const handlePattern = /(?:^|[^a-zA-Z0-9_])@[a-zA-Z0-9_]{2,}/;
 const phonePattern = /(?:\+?\d[\s().-]*){9,}/;
+const contactLinkPattern = /\b(?:t\.me|telegram\.me|wa\.me)\//i;
 
 export function containsContactData(value: string): boolean {
   return (
     emailPattern.test(value) ||
     handlePattern.test(value) ||
-    phonePattern.test(value)
+    phonePattern.test(value) ||
+    contactLinkPattern.test(value)
   );
 }
 
@@ -83,17 +88,33 @@ export type EventContext = {
   actorParticipantId?: string;
 };
 
-type Transaction = Parameters<
-  Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
->[0];
-type EventDatabase = NodePgDatabase<typeof schema> | Transaction;
+const eventContextSchema = z
+  .object({
+    participantId: z.string().regex(/^[LMO]-[0-9a-f]{10}$/),
+    dataOrigin: z.enum(schema.dataOrigin.enumValues),
+    templateVersion: z
+      .string()
+      .refine((value) => value.trim().length > 0)
+      .nullable()
+      .optional(),
+    actorParticipantId: z
+      .string()
+      .regex(/^O-[0-9a-f]{10}$/)
+      .optional(),
+  })
+  .strict();
+
+export function validateEventContext(context: EventContext) {
+  return eventContextSchema.parse(context);
+}
 
 export async function recordEvent(
-  database: EventDatabase,
-  context: EventContext,
+  database: DatabaseExecutor,
+  serverContext: EventContext,
   untrustedInput: EventInput,
 ) {
   const input = validateEventInput(untrustedInput);
+  const context = validateEventContext(serverContext);
   const [participant] = await database
     .select({ role: participants.role })
     .from(participants)

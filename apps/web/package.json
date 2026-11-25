@@ -10,13 +10,16 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "SKILLSWAP_REQUIRE_DB_TESTS=1 vitest run",
     "e2e": "playwright test",
     "db:seed:rehearsal": "tsx src/db/seed-rehearsal.ts",
     "db:expire-feedback": "tsx src/db/expire-feedback.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:test:prepare": "tsx testing/prepare-database.ts",
+    "db:test:reset": "tsx testing/prepare-database.ts --reset"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.4.1",

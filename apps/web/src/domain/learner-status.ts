@@ -118,7 +118,8 @@ export function deriveLearnerStatusState(input: {
     now.getTime() - input.requestCreatedAt.getTime() >= NO_MATCH_AFTER_MS &&
     ["eligible", "matching"].includes(requestStatus);
   return {
-    state: requestStatus === "no_match" || waitedTooLong ? "no_match" : "waiting",
+    state:
+      requestStatus === "no_match" || waitedTooLong ? "no_match" : "waiting",
     isConfirmed,
     isReadyToConfirm,
   };

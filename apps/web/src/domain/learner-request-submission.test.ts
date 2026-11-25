@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { addCalendarDays, contactIsValid, validDateOnly } from "./learner-request-submission";
+import {
+  addCalendarDays,
+  contactIsValid,
+  validDateOnly,
+} from "./learner-request-submission";
 
 describe("learner request input helpers", () => {
   it("validates real calendar dates and adds calendar days", () => {

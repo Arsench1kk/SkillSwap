@@ -3,6 +3,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/db/schema";
 import { learnerRequests, matches, mentorBriefs } from "@/db/schema";
 import { recordEvent } from "@/domain/events";
+import { ensureScheduledSession } from "../sessions/schedule-session";
 import {
   addCalendarDays,
   almatyDate,
@@ -156,6 +157,7 @@ export function confirmLearnerMatch(
 ): Promise<LearnerActionResult> {
   return run(database, async (tx) => {
     const { brief, request, match } = await lockAcceptedProposal(tx, requestId);
+    if (!match.proposedSlotAt) throw new StateChanged();
     const actor = {
       type: "participant" as const,
       participantId: request.participantId,
@@ -192,6 +194,8 @@ export function confirmLearnerMatch(
       .where(and(eq(matches.id, match.id), eq(matches.status, "proposed")))
       .returning({ id: matches.id });
     if (updated.length !== 1) throw new StateChanged();
+
+    await ensureScheduledSession(tx, match.id);
 
     await recordEvent(
       tx,

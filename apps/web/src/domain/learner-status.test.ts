@@ -19,9 +19,7 @@ describe("learner recovery states", () => {
   });
 
   it("does not mistake an unanswered mentor decline for learner-declined time", () => {
-    expect(learnerRecoveryState("matching", "declined", "pending")).toBe(
-      null,
-    );
+    expect(learnerRecoveryState("matching", "declined", "pending")).toBe(null);
   });
 
   it("distinguishes a cancelled session from a pre-confirmation mentor withdrawal", () => {
@@ -85,7 +83,11 @@ describe("deriveLearnerStatusState (request status enum, not brief status)", () 
   });
 
   it("shows confirmed only when both sides accepted", () => {
-    const confirmed = { ...readyMatch, status: "accepted", learnerAcceptedAt: now };
+    const confirmed = {
+      ...readyMatch,
+      status: "accepted",
+      learnerAcceptedAt: now,
+    };
     expect(derive("session_scheduled", confirmed)).toBe("confirmed");
     expect(
       derive("session_scheduled", { ...confirmed, learnerAcceptedAt: null }),

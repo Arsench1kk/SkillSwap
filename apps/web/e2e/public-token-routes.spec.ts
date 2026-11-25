@@ -1,13 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { Pool } from "pg";
 import { expect, test } from "@playwright/test";
 import { expireUnansweredFeedback } from "../src/domain/expire-feedback";
+import { createFixturePool } from "./support/database";
 
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ??
-    "postgres://skillswap:skillswap@127.0.0.1:5433/skillswap",
-});
+const pool = createFixturePool();
 
 type FixtureOptions = {
   requestStatus?:
@@ -347,9 +343,7 @@ test.describe("participant token routes at phone width", () => {
       matchStatus: "proposed",
     });
     if (!fixture.briefToken) throw new Error("Expected a brief token fixture");
-    const ipBytes = createHash("sha256")
-      .update(fixture.briefToken)
-      .digest();
+    const ipBytes = createHash("sha256").update(fixture.briefToken).digest();
     await page.setExtraHTTPHeaders({
       "x-forwarded-for": `198.18.${ipBytes[0]}.${ipBytes[1]}`,
     });
@@ -628,9 +622,7 @@ test.describe("participant token routes at phone width", () => {
 
   test("X2 submits a safety report and confirms it", async ({ page }) => {
     const fixture = await createFixture({ requestStatus: "eligible" });
-    const ipBytes = createHash("sha256")
-      .update(fixture.requestToken)
-      .digest();
+    const ipBytes = createHash("sha256").update(fixture.requestToken).digest();
     await page.setExtraHTTPHeaders({
       "x-forwarded-for": `198.18.${ipBytes[0]}.${ipBytes[1]}`,
     });

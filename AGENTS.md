@@ -99,6 +99,21 @@ Do not build: your own auth system, a date library, a UI kit, a form framework, 
 - Never commit secrets. Provide `.env.example`. Validate all input with Zod on the server. Rate-limit public form endpoints in a simple way (database counters), not with a new service.
 - Do not rewrite unrelated files or reformat the whole repository.
 
+## Verification scope and delivery pace — Arsen, 2026-11-19
+
+Keep verification proportional to the change. For a small behavior-preserving
+refactor, run lint, typecheck and the relevant focused test or screen smoke;
+let CI run the full suite once. Do not repeat full suites or broaden checks
+without a code change, a specific failure or an unresolved risk. Investigate an
+environment failure before repeating a long run. Database, auth, access-control
+and data-integrity changes still require the relevant integration and negative
+checks. Required CI checks must pass before merge.
+
+Prefer complete, useful functional blocks and reviewable PRs. Avoid splitting
+routine mechanical work into many tiny delivery cycles when it can be safely
+reviewed together. Batch coordination updates for each block. Do not let testing,
+polling or reporting dominate development without a concrete reason.
+
 ## Definition of done
 
 A task is done only when all are true:

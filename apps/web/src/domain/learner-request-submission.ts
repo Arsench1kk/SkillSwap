@@ -32,7 +32,6 @@ export {
   type LearnerRequestInput,
 } from "@/domain/learner-request-submission-rules";
 
-
 type Transaction = Parameters<
   Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
 >[0];
@@ -43,7 +42,10 @@ async function findOrCreateLearnerParticipant(
   now: Date,
 ) {
   const [linked] = await transaction
-    .select({ participantId: accountParticipants.participantId, status: participants.status })
+    .select({
+      participantId: accountParticipants.participantId,
+      status: participants.status,
+    })
     .from(accountParticipants)
     .innerJoin(
       participants,
@@ -132,7 +134,13 @@ export async function submitLearnerRequest(
 
   return db.transaction(async (tx) => {
     const learner = options.authUserId
-      ? { participantId: await findOrCreateLearnerParticipant(tx, options.authUserId, now) }
+      ? {
+          participantId: await findOrCreateLearnerParticipant(
+            tx,
+            options.authUserId,
+            now,
+          ),
+        }
       : await createParticipant(tx, { role: "learner", consentGivenAt: now });
 
     await tx.insert(participantContacts).values({

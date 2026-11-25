@@ -31,9 +31,10 @@ test.describe("public information pages", () => {
     await expect(
       page.getByRole("link", { name: /send a request/i }),
     ).toHaveAttribute("href", "/request");
-    await expect(
-      page.getByRole("link", { name: "Log in" }),
-    ).toHaveAttribute("href", "/login");
+    await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(360);

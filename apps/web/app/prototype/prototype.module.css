@@ -1,54 +1,3 @@
-.profileView {
-  max-width: 800px;
-}
-.profileIdentity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  padding-bottom: var(--space-8);
-}
-.profileIdentity > div {
-  flex: 1;
-  min-width: 0;
-}
-.profileIdentity h1 {
-  margin: 0;
-  font-size: var(--type-page-title-size);
-  line-height: var(--type-page-title-line);
-}
-.profileIdentity p {
-  margin: var(--space-2) 0 0;
-  color: var(--ink-muted);
-}
-.profileSection {
-  padding: var(--space-6) 0;
-  border-top: 1px solid var(--line);
-}
-.profileSection h2 {
-  margin: 0 0 var(--space-3);
-  font-size: var(--type-section-title-size);
-}
-.profileSection p {
-  margin: 0;
-  max-width: 65ch;
-}
-.profileSkillList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-  padding-left: var(--space-4);
-  margin: 0;
-}
-@media (max-width: 680px) {
-  .profileIdentity {
-    flex-wrap: wrap;
-    gap: var(--space-4);
-  }
-  .profileIdentity > div {
-    flex-basis: calc(100% - 100px);
-  }
-}
-
 .mentorSkills {
   margin: var(--space-3) 0 0;
   font-size: var(--type-meta-size);
@@ -505,12 +454,7 @@
 .nextSession,
 .requestPanel,
 .settingsGroup,
-.profileSummary,
-.profileForm,
-.requestDetail,
-.sessionDetailCard,
-.personAbout,
-.personAside {
+.profileSummary {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -606,10 +550,7 @@
   min-width: 0;
 }
 
-.sessionStatus,
-.sessionMeta,
-.sessionMeta span,
-.sessionMeta span svg {
+.sessionStatus {
   display: flex;
   align-items: center;
 }
@@ -641,22 +582,6 @@
   margin: 0;
   color: var(--ink-muted);
   font-size: var(--type-meta-size);
-}
-
-.sessionMeta {
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 15px 0;
-}
-
-.sessionMeta span {
-  gap: 7px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.sessionMeta svg {
-  color: var(--accent);
 }
 
 .outlineButton {
@@ -719,33 +644,6 @@
 .requestRow > small {
   color: var(--ink-muted);
   font-size: 12px;
-}
-
-.requestStateBlue,
-.requestStateNeutral {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: fit-content;
-  color: var(--accent-tint-ink);
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-}
-
-.requestStateBlue > span,
-.requestStateNeutral > span {
-  width: 7px;
-  height: 7px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.requestStateNeutral {
-  color: var(--warn);
-}
-
-.requestStateNeutral > span {
-  background: var(--warn);
 }
 
 .panelFooter {
@@ -830,57 +728,6 @@
   align-self: center;
 }
 
-.inboxSection {
-  max-width: 940px;
-}
-
-.inboxSection > .sectionHead {
-  margin-bottom: 15px;
-}
-
-.invitationStack {
-  display: grid;
-  gap: 16px;
-}
-
-.invitationCard {
-  padding: 21px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-}
-
-.invitationTop,
-.invitationPerson,
-.invitationActions {
-  display: flex;
-  align-items: center;
-}
-
-.invitationTop {
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.invitationPerson {
-  gap: 11px;
-}
-
-.invitationPerson strong,
-.invitationPerson small {
-  display: block;
-}
-
-.invitationPerson strong {
-  font-size: var(--type-meta-size);
-}
-
-.invitationPerson small {
-  margin-top: 2px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
 .privateTag,
 .samplePill {
   display: inline-flex;
@@ -896,87 +743,6 @@
 
 .privateTag {
   padding: 6px 9px;
-}
-
-.invitationCard h3 {
-  margin: 19px 0 5px;
-  font-size: 20px;
-  line-height: 27px;
-  letter-spacing: -0.025em;
-}
-
-.invitationCard > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.invitationExtra {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 21px;
-  margin-top: 16px;
-  padding: 13px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.invitationExtra span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.invitationExtra svg {
-  color: var(--accent);
-}
-
-.invitationActions {
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 17px;
-}
-
-.invitationActions .textButton {
-  margin-right: auto;
-}
-
-.invitationResolved {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 15px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.passedPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 9px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-}
-
-.invitationCompact {
-  padding: 17px 21px;
-}
-
-.invitationCompact h3 {
-  margin: 14px 0 4px;
-  font-size: var(--type-body-size);
-  line-height: 22px;
-}
-
-.invitationCompact .invitationActions {
-  margin-top: 10px;
 }
 
 .mentorInsight,
@@ -1027,270 +793,6 @@
   white-space: nowrap;
 }
 
-.searchBar {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-height: 54px;
-  padding: 0 13px;
-  color: var(--ink-muted);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: 11px;
-}
-
-.searchBar:focus-within {
-  border-color: var(--accent);
-  box-shadow: var(--focus-ring);
-}
-
-.searchBar > svg {
-  flex: 0 0 auto;
-  color: var(--accent);
-}
-
-.searchBar input {
-  flex: 1;
-  min-width: 0;
-  height: 48px;
-  color: var(--ink);
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font-size: var(--type-meta-size);
-}
-
-.searchBar input::placeholder {
-  color: var(--ink-muted);
-  opacity: 1;
-}
-
-.searchBar button {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.searchBar kbd {
-  padding: 4px 7px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  font-family: inherit;
-  font-size: 11px;
-}
-
-.exploreToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  margin: 17px 0 15px;
-}
-
-.filterList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.filterList button {
-  min-height: 36px;
-  padding: 0 12px;
-  color: var(--ink-muted);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: var(--type-medium);
-  cursor: pointer;
-}
-
-.filterList button:hover,
-.filterList .filterActive {
-  color: var(--accent-tint-ink);
-  background: var(--accent-tint);
-  border-color: var(--accent-border);
-}
-
-.filterList .filterActive {
-  font-weight: var(--type-semibold);
-}
-
-.filterButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  min-height: 36px;
-  padding: 0 10px;
-  color: var(--ink-muted);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.filterButton > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.filterButton > span:last-child {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  color: var(--accent-tint-ink);
-  background: var(--accent-tint);
-  border-radius: 50%;
-}
-
-.savedFilterActive {
-  color: var(--accent-tint-ink);
-  background: var(--accent-tint);
-  border-color: var(--accent-border);
-}
-
-.resultCaption {
-  margin: 0 0 10px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.resultCaption span {
-  margin: 0 4px;
-}
-
-.mentorList {
-  display: grid;
-  gap: 11px;
-}
-
-.mentorRow {
-  display: grid;
-  grid-template-columns: 60px minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 17px;
-  padding: 19px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  transition: border-color 140ms ease;
-}
-
-.mentorRow:hover {
-  border-color: var(--line-strong);
-}
-
-.mentorRowMain {
-  min-width: 0;
-}
-
-.mentorNameLine {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-}
-
-.mentorNameLine h2 {
-  margin: 0;
-  font-size: 18px;
-  line-height: 24px;
-}
-
-.verifiedLine {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--success);
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-}
-
-.mentorRowMain > p {
-  margin: 4px 0 11px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.skillChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.skillChips > span,
-.skillChips > button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 27px;
-  padding: 0 9px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 11px;
-}
-
-.mentorAvailability {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 13px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.mentorAvailability svg {
-  color: var(--accent);
-}
-
-.mentorAvailability strong {
-  color: var(--ink);
-  font-weight: var(--type-semibold);
-}
-
-.mentorRowActions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.mentorRowActions .secondaryButton {
-  min-height: 39px;
-  padding: 0 11px;
-  font-size: 12px;
-}
-
-.favoriteButton {
-  display: grid;
-  width: 39px;
-  height: 39px;
-  place-items: center;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.favoriteButton:hover,
-.favoriteActive {
-  color: var(--danger);
-  background: var(--danger-tint);
-}
-
 .emptyState {
   display: grid;
   justify-items: center;
@@ -1319,7 +821,6 @@
   margin-top: 8px;
 }
 
-.personPage,
 .formScreen {
   max-width: 1050px;
 }
@@ -1340,167 +841,6 @@
 
 .backLink:hover {
   color: var(--accent);
-}
-
-.personHero {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 26px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-}
-
-.personHero > .primaryButton {
-  margin-left: auto;
-}
-
-.personIdentity {
-  min-width: 0;
-}
-
-.personIdentity h1 {
-  margin: 5px 0 1px;
-  font-size: 27px;
-  line-height: 33px;
-  letter-spacing: -0.03em;
-}
-
-.personIdentity > p {
-  margin: 0 0 11px;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.personContent {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 17px;
-  margin-top: 17px;
-}
-
-.personAbout,
-.personAside {
-  padding: 23px;
-}
-
-.personAbout h2,
-.personAside h2 {
-  margin: 0;
-  font-size: 19px;
-  line-height: 25px;
-}
-
-.personAbout > p {
-  max-width: 62ch;
-  margin: 9px 0 28px;
-  color: var(--ink-muted);
-}
-
-.personAbout h3 {
-  margin: 0 0 12px;
-  font-size: var(--type-meta-size);
-}
-
-.evidenceRow {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 11px;
-  padding: 13px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-
-.evidenceRow > span {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  color: var(--accent);
-  background: var(--accent-tint);
-  border-radius: 9px;
-}
-
-.evidenceRow > div strong,
-.evidenceRow > div small {
-  display: block;
-}
-
-.evidenceRow > div strong {
-  font-size: 12px;
-}
-
-.evidenceRow > div small {
-  margin-top: 3px;
-  color: var(--ink-muted);
-  font-size: 11px;
-}
-
-.evidenceRow > svg {
-  color: var(--success);
-}
-
-.personAside h2 {
-  margin-bottom: 15px;
-}
-
-.availabilitySlot {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 46px;
-  padding: 0 11px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
-  border-radius: var(--radius-control);
-  font-size: var(--type-meta-size);
-}
-
-.availabilitySlot svg:first-child {
-  color: var(--accent);
-}
-
-.availabilitySlot span {
-  flex: 1;
-}
-
-.availabilitySlot svg:last-child {
-  color: var(--success);
-}
-
-.howNext {
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-}
-
-.howNext strong {
-  font-size: var(--type-meta-size);
-}
-
-.howNext p,
-.contactPrivacy {
-  margin: 5px 0 0;
-  color: var(--ink-muted);
-  font-size: 12px;
-  line-height: 19px;
-}
-
-.contactPrivacy {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.contactPrivacy svg {
-  flex: 0 0 auto;
-  color: var(--success);
 }
 
 .formScreen > .screenHeading {
@@ -1618,133 +958,10 @@
   margin-bottom: 23px;
 }
 
-.requestList {
-  display: grid;
-  gap: 12px;
-}
-
-.requestDetail {
-  padding: 19px 21px;
-}
-
-.requestDetailTop,
-.requestDetailBottom,
-.requestDetailBottom > span {
-  display: flex;
-  align-items: center;
-}
-
-.requestDetailTop {
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
-.requestDetail h2 {
-  margin: 12px 0 4px;
-  font-size: 18px;
-  line-height: 25px;
-}
-
-.requestDetail > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.requestDetailBottom {
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 15px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.requestDetailBottom > span {
-  gap: 6px;
-  color: var(--ink-muted);
-  font-size: 12px;
-}
-
 .infoStrip {
   margin-top: 16px;
 }
 
-.sessionTabs {
-  display: flex;
-  gap: 23px;
-  margin: 0 0 16px;
-  border-bottom: 1px solid var(--line);
-}
-
-.sessionTabs button {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 43px;
-  padding: 0 2px;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  font-size: var(--type-meta-size);
-  cursor: pointer;
-}
-
-.sessionTabs .sessionTabActive {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: var(--type-semibold);
-}
-
-.sessionTabs span {
-  display: grid;
-  min-width: 20px;
-  height: 20px;
-  place-items: center;
-  padding: 0 5px;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  border-radius: 999px;
-  font-size: 11px;
-}
-
-.sessionDetailCard {
-  display: grid;
-  grid-template-columns: 70px minmax(0, 1fr) 230px;
-  gap: 20px;
-  padding: 23px;
-}
-
-.sessionCalendar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  align-self: start;
-  min-height: 85px;
-  color: var(--accent);
-  background: var(--accent-tint);
-  border-radius: 12px;
-}
-
-.sessionCalendar strong {
-  font-size: 30px;
-  line-height: 34px;
-}
-
-.sessionCalendar span {
-  font-size: 11px;
-  font-weight: var(--type-semibold);
-  letter-spacing: 0.07em;
-}
-
-.sessionDetailMain {
-  min-width: 0;
-}
-
-.confirmedPill,
 .completePill {
   display: inline-flex;
   align-items: center;
@@ -1753,99 +970,6 @@
   color: var(--success);
   font-size: 11px;
   font-weight: var(--type-semibold);
-}
-
-.sessionDetailMain h2 {
-  margin: 8px 0 3px;
-  font-size: 20px;
-  line-height: 26px;
-}
-
-.sessionDetailMain > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-meta-size);
-}
-
-.sessionDetailMain .sessionMeta {
-  margin: 15px 0;
-}
-
-.sessionPlan {
-  margin: 14px 0;
-  padding-top: 13px;
-  border-top: 1px solid var(--line);
-}
-
-.sessionPlan strong {
-  font-size: var(--type-meta-size);
-}
-
-.sessionPlan p {
-  margin: 4px 0 0;
-  color: var(--ink-muted);
-  font-size: 12px;
-  line-height: 19px;
-}
-
-.sessionContact {
-  align-self: stretch;
-  padding: 14px;
-  color: var(--success);
-  background: var(--success-tint);
-  border-radius: var(--radius-control);
-}
-
-.sessionContact > svg {
-  margin-bottom: 9px;
-}
-
-.sessionContact strong {
-  display: block;
-  font-size: 12px;
-}
-
-.sessionContact p {
-  margin: 4px 0 0;
-  font-size: 11px;
-  line-height: 17px;
-}
-
-.pastSessions {
-  display: grid;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-}
-
-.pastSessionRow {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 16px 18px;
-}
-
-.pastSessionRow + .pastSessionRow {
-  border-top: 1px solid var(--line);
-}
-
-.pastSessionRow > div {
-  flex: 1;
-}
-
-.pastSessionRow strong,
-.pastSessionRow small {
-  display: block;
-}
-
-.pastSessionRow strong {
-  font-size: var(--type-meta-size);
-}
-
-.pastSessionRow small {
-  margin-top: 3px;
-  color: var(--ink-muted);
-  font-size: 12px;
 }
 
 .completePill {
@@ -1915,69 +1039,6 @@
 .profileSummary .secondaryButton {
   min-height: 39px;
   font-size: 12px;
-}
-
-.profileForm {
-  display: grid;
-  gap: 17px;
-  padding: 22px;
-}
-
-.profileForm > h2 {
-  margin: 0 0 2px;
-  font-size: 18px;
-}
-
-.profileForm > .primaryButton {
-  justify-self: start;
-}
-
-.profileSkills {
-  display: grid;
-  gap: 9px;
-}
-
-.profileSkills > strong {
-  font-size: var(--type-meta-size);
-}
-
-.profileSkills .skillChips > span {
-  min-height: 31px;
-}
-
-.skillChips > span button {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  color: var(--ink-muted);
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.skillChips .addSkill {
-  color: var(--accent);
-  background: var(--accent-tint);
-  border-color: var(--accent-border);
-  cursor: pointer;
-}
-
-.addSkillForm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 9px;
-}
-
-.addSkillForm input {
-  flex: 1;
-  min-width: 0;
-  min-height: 42px;
-  padding: 0 11px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  font: inherit;
 }
 
 .srOnly {
@@ -2442,18 +1503,6 @@
   .homeGrid {
     grid-template-columns: minmax(0, 1fr) minmax(270px, 0.8fr);
   }
-
-  .sessionDetailCard {
-    grid-template-columns: 60px minmax(0, 1fr);
-  }
-
-  .sessionContact {
-    grid-column: 2;
-  }
-
-  .personContent {
-    grid-template-columns: minmax(0, 1fr) 290px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -2480,10 +1529,6 @@
 
   .contentWrap {
     padding: 28px 22px 60px;
-  }
-
-  .personContent {
-    grid-template-columns: minmax(0, 1fr) 270px;
   }
 }
 
@@ -2547,7 +1592,6 @@
 
   .homeGrid,
   .bottomGrid,
-  .personContent,
   .profileLayout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2589,15 +1633,6 @@
   .sessionBody h3 {
     font-size: var(--type-meta-size);
     line-height: 21px;
-  }
-
-  .sessionMeta {
-    gap: 6px 11px;
-    margin: 10px 0;
-  }
-
-  .sessionMeta span {
-    font-size: 11px;
   }
 
   .discoverPanel,
@@ -2666,97 +1701,6 @@
     width: 100%;
   }
 
-  .exploreToolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .filterList {
-    flex-wrap: nowrap;
-    width: calc(100vw - 32px);
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .filterList button {
-    flex: 0 0 auto;
-  }
-
-  .mentorRow {
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 11px;
-    padding: 14px;
-  }
-
-  .mentorRow .avatarLarge {
-    width: 44px;
-    height: 44px;
-    font-size: var(--type-meta-size);
-  }
-
-  .mentorNameLine {
-    gap: 3px;
-  }
-
-  .mentorNameLine h2 {
-    font-size: var(--type-meta-size);
-  }
-
-  .mentorRowMain > p {
-    margin: 2px 0 8px;
-    font-size: 11px;
-  }
-
-  .mentorNameLine .verifiedLine {
-    font-size: 10px;
-  }
-
-  .mentorRowActions {
-    grid-column: 2;
-    justify-content: space-between;
-  }
-
-  .mentorRowActions .secondaryButton {
-    flex: 1;
-  }
-
-  .personHero {
-    display: grid;
-    grid-template-columns: 54px minmax(0, 1fr);
-    gap: 12px;
-    padding: 16px;
-  }
-
-  .personHero .avatarLarge {
-    width: 54px;
-    height: 54px;
-    font-size: 16px;
-  }
-
-  .personIdentity h1 {
-    font-size: 22px;
-    line-height: 27px;
-  }
-
-  .personIdentity > p {
-    font-size: 11px;
-  }
-
-  .personIdentity .verifiedLine {
-    font-size: 10px;
-  }
-
-  .personHero > .primaryButton {
-    grid-column: 1 / -1;
-    width: 100%;
-    margin: 0;
-  }
-
-  .personAbout,
-  .personAside {
-    padding: 18px;
-  }
-
   .requestForm {
     gap: 16px;
     padding: 16px;
@@ -2777,66 +1721,14 @@
     padding: 0 9px;
   }
 
-  .requestDetail {
-    padding: 15px;
-  }
-
-  .requestDetailTop {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .requestDetail h2 {
-    font-size: var(--type-meta-size);
-    line-height: 22px;
-  }
-
   .infoStrip {
     padding: 12px;
-  }
-
-  .sessionDetailCard {
-    grid-template-columns: 51px minmax(0, 1fr);
-    gap: 12px;
-    padding: 15px;
-  }
-
-  .sessionCalendar {
-    min-height: 68px;
-  }
-
-  .sessionCalendar strong {
-    font-size: 24px;
-  }
-
-  .sessionDetailMain h2 {
-    font-size: var(--type-meta-size);
-    line-height: 22px;
-  }
-
-  .sessionContact {
-    grid-column: 1 / -1;
-  }
-
-  .pastSessionRow {
-    flex-wrap: wrap;
-    padding: 13px;
-  }
-
-  .pastSessionRow > div {
-    min-width: calc(100% - 60px);
-  }
-
-  .pastSessionRow .completePill {
-    margin-left: 49px;
   }
 
   .profileSummary {
     padding: 20px;
   }
 
-  .profileForm,
   .settingsGroup {
     padding: 17px;
   }
@@ -2858,14 +1750,6 @@
     width: 100%;
   }
 
-  .invitationCard {
-    padding: 16px;
-  }
-
-  .invitationTop {
-    align-items: flex-start;
-  }
-
   .privateTag {
     font-size: 0;
   }
@@ -2873,26 +1757,6 @@
   .privateTag svg {
     width: 17px;
     height: 17px;
-  }
-
-  .invitationCard h3 {
-    font-size: var(--type-meta-size);
-    line-height: 22px;
-  }
-
-  .invitationActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .invitationActions .textButton {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
-  .invitationActions button:not(.textButton) {
-    min-width: 0;
-    padding: 0 8px;
   }
 
   .toast {
@@ -3088,74 +1952,17 @@
 }
 
 /* Keep workspace information in readable rows rather than nested cards. */
-.personHero {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding-inline: 0;
-}
-.evidenceRow {
-  display: block;
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
-.availabilitySlot {
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
-.mentorRow,
-.invitationCard,
-.requestDetail,
-.sessionDetailCard,
-.settingsGroup,
-.profileForm,
-.personAbout,
-.personAside {
+.settingsGroup {
   border: 0;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
 }
-.mentorRow,
-.invitationCard,
-.requestDetail {
+.settingsGroup {
   padding: var(--space-6) 0;
-  border-bottom: 1px solid var(--line);
-}
-.mentorList,
-.invitationStack,
-.requestList {
-  gap: 0;
-}
-.mentorRow:hover {
-  background: transparent;
-}
-.personAbout,
-.personAside,
-.settingsGroup,
-.profileForm {
-  padding: var(--space-6) 0;
-}
-.personContent {
-  gap: var(--space-8);
 }
 .settingsGroup + .settingsGroup {
   border-top: 1px solid var(--line);
-}
-.skillChips > span {
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--ink-muted);
-}
-.skillChips {
-  gap: var(--space-2) var(--space-4);
-}
-.sessionDetailCard {
-  grid-template-columns: auto minmax(0, 1fr);
 }
 .workspaceFocus {
   border: 0;
@@ -3167,21 +1974,12 @@
   padding: 0;
   background: transparent;
 }
-.profileForm {
-  max-width: 640px;
-}
 .screenHeading h1,
 .welcomeBlock h1 {
   font-size: var(--type-page-title-size);
   line-height: var(--type-page-title-line);
 }
 @media (max-width: 680px) {
-  .sessionDetailCard {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .sessionCalendar {
-    display: none;
-  }
   .workspaceFocus {
     padding-inline: 0;
   }
@@ -3193,8 +1991,7 @@
   .secondaryButton,
   .outlineButton,
   .switch,
-  .switch span,
-  .mentorRow {
+  .switch span {
     scroll-behavior: auto;
     transition-duration: 0.01ms;
   }

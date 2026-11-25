@@ -6,7 +6,9 @@ export default function PrivacyPage() {
     <main className="brief-page">
       <header className="brief-topbar">
         <div className="brief-topbar-inner">
-          <Link className="privacy-brand" href="/">{t("brand")}</Link>
+          <Link className="privacy-brand" href="/">
+            {t("brand")}
+          </Link>
         </div>
       </header>
       <article className="privacy-content">
@@ -31,7 +33,9 @@ export default function PrivacyPage() {
         <aside className="privacy-review-note" role="note">
           {t("privacyReviewNotice")}
         </aside>
-        <Link className="privacy-back" href="/">{t("privacyBack")}</Link>
+        <Link className="privacy-back" href="/">
+          {t("privacyBack")}
+        </Link>
       </article>
     </main>
   );

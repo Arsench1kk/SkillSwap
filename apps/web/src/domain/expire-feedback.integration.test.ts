@@ -2,8 +2,8 @@ import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { expireUnansweredFeedback } from "./expire-feedback";
 
-// Explicit opt-in only. All fixtures use connection-local temporary tables.
-const connectionString = process.env.SKILLSWAP_D4_TEST_DATABASE_URL;
+// Vitest sets DATABASE_URL to the verified disposable target.
+const connectionString = process.env.DATABASE_URL;
 
 describe.skipIf(!connectionString)("D4 feedback expiry SQL", () => {
   it("preserves answers/reasons, respects the cutoff and reports only new work", async () => {

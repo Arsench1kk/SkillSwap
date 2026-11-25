@@ -1,10 +1,10 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { Pool } from "pg";
 import { expect, test } from "@playwright/test";
 import { messages } from "../../messages/en";
 
-const connectionString = process.env.SKILLSWAP_D4_TEST_DATABASE_URL;
-const pool = new Pool({ connectionString });
+import { createFixturePool } from "../support/database";
+
+const pool = createFixturePool();
 
 type FeedbackOptions = {
   outcome?: string;
@@ -81,10 +81,6 @@ async function row(id: string) {
 }
 
 test.describe("D4 L5 at 360px", () => {
-  test.skip(
-    !connectionString,
-    "Requires explicit dedicated D4 test DB and the app on the same DB",
-  );
   test.use({ viewport: { width: 360, height: 780 } });
 
   test("completes remaining ratings without resending an existing read-only outcome", async ({
@@ -107,12 +103,6 @@ test.describe("D4 L5 at 360px", () => {
       .getByRole("group", { name: messages.ratingTrust })
       .getByRole("radio", { name: "5", exact: true })
       .check();
-    if (process.env.SKILLSWAP_D4_SCREENSHOT_PATH) {
-      await page.screenshot({
-        path: process.env.SKILLSWAP_D4_SCREENSHOT_PATH,
-        fullPage: true,
-      });
-    }
     const request = page.waitForRequest(
       (r) => r.url().endsWith("/api/rating") && r.method() === "POST",
     );
@@ -235,7 +225,6 @@ test.describe("D4 L5 at 360px", () => {
 });
 
 test.describe("D4 L4 existing actions at 360px", () => {
-  test.skip(!connectionString, "Requires explicit dedicated D4 test DB");
   test.use({ viewport: { width: 360, height: 780 } });
   // pool belongs to this worker too; both describes share the module instance.
   for (const role of ["learner", "mentor"] as const) {
@@ -311,7 +300,6 @@ test.describe("D4 L4 existing actions at 360px", () => {
 });
 
 test.describe("D4 L4 action errors at 360px", () => {
-  test.skip(!connectionString, "Requires explicit dedicated D4 test DB");
   test.use({ viewport: { width: 360, height: 780 } });
   for (const failure of ["network", "server"] as const) {
     test(`L4 shows ${failure} start error while keeping external Meet available`, async ({

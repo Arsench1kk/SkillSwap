@@ -1,15 +1,34 @@
 import { createHash, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { eq, sql } from "drizzle-orm";
+import { z } from "zod";
+import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
 import { linkTokens } from "@/db/schema";
 
-type Transaction = Parameters<
-  Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
->[0];
-type Database = NodePgDatabase<typeof schema> | Transaction;
 type Purpose = (typeof schema.tokenPurpose.enumValues)[number];
 type SubjectType = (typeof schema.tokenSubjectType.enumValues)[number];
+
+const createLinkSchema = z
+  .object({
+    purpose: z.enum(schema.tokenPurpose.enumValues),
+    subjectType: z.enum(schema.tokenSubjectType.enumValues),
+    subjectId: z.string().min(1),
+    expiresAt: z.date(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const validSubject =
+      input.subjectType === "participant"
+        ? /^[LMO]-[0-9a-f]{10}$/.test(input.subjectId)
+        : z.uuid().safeParse(input.subjectId).success;
+    if (!validSubject) {
+      context.addIssue({
+        code: "custom",
+        path: ["subjectId"],
+        message: "Invalid private link subject ID",
+      });
+    }
+  });
 
 export type LinkVerification =
   | {
@@ -26,14 +45,15 @@ function hashToken(rawToken: string): Buffer {
 }
 
 export async function createPrivateLink(
-  database: Database,
-  input: {
+  database: DatabaseExecutor,
+  serverInput: {
     purpose: Purpose;
     subjectType: SubjectType;
     subjectId: string;
     expiresAt: Date;
   },
 ): Promise<{ id: string; token: string }> {
+  const input = createLinkSchema.parse(serverInput);
   if (input.expiresAt.getTime() <= Date.now()) {
     throw new Error("Private link expiry must be in the future");
   }
@@ -53,11 +73,13 @@ export async function createPrivateLink(
 }
 
 export async function verifyPrivateLink(
-  database: Database,
+  database: DatabaseExecutor,
   rawToken: string,
   now = new Date(),
 ): Promise<LinkVerification> {
-  if (!/^[A-Za-z0-9_-]{43}$/.test(rawToken)) return { status: "not_found" };
+  if (typeof rawToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(rawToken))
+    return { status: "not_found" };
+  z.date().parse(now);
   const [row] = await database
     .select()
     .from(linkTokens)
@@ -76,13 +98,16 @@ export async function verifyPrivateLink(
 }
 
 export async function revokePrivateLink(
-  database: Database,
+  database: DatabaseExecutor,
   linkId: string,
   revokedAt = new Date(),
 ): Promise<boolean> {
+  z.uuid().parse(linkId);
+  z.date().parse(revokedAt);
   const [row] = await database
     .update(linkTokens)
-    .set({ revokedAt })
+    // Preserve the first recorded revocation, including concurrent retries.
+    .set({ revokedAt: sql`coalesce(${linkTokens.revokedAt}, ${revokedAt})` })
     .where(eq(linkTokens.id, linkId))
     .returning({ id: linkTokens.id });
   return Boolean(row);

@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -12,32 +13,48 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
-  BookOpen,
   CalendarDays,
-  Check,
   CheckCircle2,
   ChevronDown,
-  Clock3,
   Compass,
-  Heart,
   Home,
   LogOut,
   Menu,
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings,
   ShieldCheck,
   UserRound,
-  Video,
   X,
 } from "lucide-react";
-import type { MessageKey } from "@/messages/en";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { RequestForm } from "@/app/request/request-form";
 import { authClient } from "@/src/lib/auth-client";
 import { useLanguage, useTranslations } from "@/src/i18n/provider";
+import {
+  PrototypeRequests,
+  type PrototypeRequest,
+} from "@/features/learner/prototype-requests";
+import {
+  PrototypeSessions,
+  type PrototypeSessionTab,
+} from "@/features/sessions/prototype-sessions";
+import { PrototypeDiscovery } from "@/features/discovery/prototype-discovery";
+import {
+  mentors,
+  localizeMentor,
+  capitalize,
+  type Mentor,
+  type SkillFilter,
+} from "@/features/discovery/prototype-mentors";
+import { PrototypeMentorCard } from "@/features/profile/prototype-mentor-card";
+import { PrototypeProfile } from "@/features/profile/prototype-profile";
+import {
+  PrototypeInvitations,
+  PrototypeMentorHome,
+  type PrototypeInvitationStatus,
+} from "@/features/mentor/prototype-invitations";
 import styles from "./prototype.module.css";
 
 type Role = "learner" | "mentor";
@@ -50,137 +67,9 @@ type Screen =
   | "settings"
   | "mentor-profile"
   | "new-request";
-type SkillFilter = "all" | "Design" | "Data" | "Programming" | "Video";
-type Mentor = {
-  id: 1 | 2 | 3 | 4;
-  name: string;
-  initials: string;
-  study: string;
-  city: string;
-  category: Exclude<SkillFilter, "all">;
-  skills: string[];
-  proof: string;
-  availability: string;
-  about: string;
-  color: "blue" | "green" | "gold" | "coral";
-};
-type Request = {
-  id: number;
-  title: string;
-  detail: string;
-  state: "review" | "proposed" | "confirmed" | "completed";
-  person: string;
-  date: string;
-};
-
-const mentors: Mentor[] = [
-  {
-    id: 1,
-    name: "Aigerim S.",
-    initials: "AS",
-    study: "Information systems · Year 3",
-    city: "Almaty",
-    category: "Data",
-    skills: ["Excel", "Power Query", "Data visualization"],
-    proof: "Dashboard project reviewed by the team",
-    availability: "Thu · 18:30",
-    about:
-      "I like turning messy spreadsheets into clear, useful dashboards. Happy to work through one real task together.",
-    color: "blue",
-  },
-  {
-    id: 2,
-    name: "Timur K.",
-    initials: "TK",
-    study: "Computer science · Year 4",
-    city: "Almaty",
-    category: "Programming",
-    skills: ["Python", "Pandas", "Jupyter"],
-    proof: "Course project and code sample reviewed",
-    availability: "Fri · 16:00",
-    about:
-      "I can help you find the bug, understand the error, and leave with a way to solve the next one yourself.",
-    color: "green",
-  },
-  {
-    id: 3,
-    name: "Mira B.",
-    initials: "MB",
-    study: "Visual communication · Year 2",
-    city: "Astana",
-    category: "Design",
-    skills: ["Figma", "Layout", "Design systems"],
-    proof: "Portfolio work reviewed by the team",
-    availability: "Sat · 11:00",
-    about:
-      "I enjoy making complex screens feel simple. Bring a draft and we can improve one part at a time.",
-    color: "coral",
-  },
-  {
-    id: 4,
-    name: "Dias A.",
-    initials: "DA",
-    study: "Media production · Year 3",
-    city: "Almaty",
-    category: "Video",
-    skills: ["Premiere Pro", "Color", "Audio"],
-    proof: "Editing work sample reviewed by the team",
-    availability: "Sun · 14:00",
-    about:
-      "I can help untangle an editing workflow or make a rough cut feel more intentional.",
-    color: "gold",
-  },
-];
-
-const mentorCopyKeys: Record<
-  Mentor["id"],
-  {
-    study: MessageKey;
-    proof: MessageKey;
-    about: MessageKey;
-    availability: MessageKey;
-  }
-> = {
-  1: {
-    study: "prototypeSampleMentorOneStudy",
-    proof: "prototypeSampleMentorOneProof",
-    about: "prototypeSampleMentorOneAbout",
-    availability: "prototypeSampleMentorOneAvailability",
-  },
-  2: {
-    study: "prototypeSampleMentorTwoStudy",
-    proof: "prototypeSampleMentorTwoProof",
-    about: "prototypeSampleMentorTwoAbout",
-    availability: "prototypeSampleMentorTwoAvailability",
-  },
-  3: {
-    study: "prototypeSampleMentorThreeStudy",
-    proof: "prototypeSampleMentorThreeProof",
-    about: "prototypeSampleMentorThreeAbout",
-    availability: "prototypeSampleMentorThreeAvailability",
-  },
-  4: {
-    study: "prototypeSampleMentorFourStudy",
-    proof: "prototypeSampleMentorFourProof",
-    about: "prototypeSampleMentorFourAbout",
-    availability: "prototypeSampleMentorFourAvailability",
-  },
-};
-
-function localizeMentor(mentor: Mentor, t: ReturnType<typeof useTranslations>) {
-  const copy = mentorCopyKeys[mentor.id];
-  return {
-    ...mentor,
-    study: t(copy.study),
-    city:
-      mentor.city === "Almaty" ? t("prototypeAlmaty") : t("prototypeAstana"),
-    proof: t(copy.proof),
-    about: t(copy.about),
-    availability: t(copy.availability),
-  };
-}
-
-const initialRequests = (t: ReturnType<typeof useTranslations>): Request[] => [
+const initialRequests = (
+  t: ReturnType<typeof useTranslations>,
+): PrototypeRequest[] => [
   {
     id: 1,
     title: t("prototypeTaskTitle"),
@@ -199,14 +88,6 @@ const initialRequests = (t: ReturnType<typeof useTranslations>): Request[] => [
   },
 ];
 
-const skillFilters: SkillFilter[] = [
-  "all",
-  "Design",
-  "Data",
-  "Programming",
-  "Video",
-];
-
 const iconForScreen = {
   home: Home,
   explore: Compass,
@@ -219,16 +100,66 @@ const iconForScreen = {
   typeof Home
 >;
 
+type WorkspaceSession = NonNullable<
+  ReturnType<typeof authClient.useSession>["data"]
+>;
+
 export function PrototypeApp() {
+  const t = useTranslations();
+  const { data, isPending, error, refetch } = authClient.useSession();
+  const blocked = isPending || Boolean(error);
+  return (
+    <>
+      {blocked && (
+        <main className="public-page">
+          <div className="public-content">
+            <section
+              className="public-panel"
+              role={error ? "alert" : "status"}
+              aria-busy={isPending}
+            >
+              <p className="public-copy">
+                {t(error ? "authRequestError" : "loading")}
+              </p>
+              {error && (
+                <button
+                  className={styles.primaryButton}
+                  onClick={() => void refetch()}
+                >
+                  {t("prototypeRetry")}
+                </button>
+              )}
+            </section>
+          </div>
+        </main>
+      )}
+      {(data || !blocked) && (
+        <div hidden={blocked}>
+          <PrototypeWorkspace
+            key={data?.user.id ?? "demo"}
+            authSession={data}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function PrototypeWorkspace({
+  authSession,
+}: {
+  authSession: WorkspaceSession | null;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: authSession } = authClient.useSession();
   const { language } = useLanguage();
   const isDemoMode = authSession === null;
   const requestedRole: Role =
     searchParams.get("role") === "mentor" ? "mentor" : "learner";
   const [roleSelection, setRoleSelection] = useState<Role | null>(null);
+  const authActionInFlight = useRef(false);
+  const [authAction, setAuthAction] = useState<"role" | "signout" | null>(null);
   const role =
     roleSelection ??
     (authSession?.user.activeRole === "mentor"
@@ -242,13 +173,14 @@ export function PrototypeApp() {
   const [filter, setFilter] = useState<SkillFilter>("all");
   const [search, setSearch] = useState("");
   const [selectedMentor, setSelectedMentor] = useState<Mentor>(mentors[0]);
-  const selectedMentorCopy = localizeMentor(selectedMentor, t);
-  const [accountRequests, setAccountRequests] = useState<Request[]>([]);
+  const [accountRequests, setAccountRequests] = useState<PrototypeRequest[]>(
+    [],
+  );
   const [accountRequestsOwner, setAccountRequestsOwner] = useState<
     string | null
   >(null);
   const [demoRequestsOverride, setDemoRequestsOverride] = useState<
-    Request[] | null
+    PrototypeRequest[] | null
   >(null);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsLoadError, setRequestsLoadError] = useState(false);
@@ -259,10 +191,10 @@ export function PrototypeApp() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>([2]);
   const [savedOnly, setSavedOnly] = useState(false);
   const [invitationStates, setInvitationStates] = useState<
-    Record<number, "pending" | "accepted" | "declined">
+    Record<number, PrototypeInvitationStatus>
   >({ 1: "pending", 2: "pending" });
   const [toast, setToast] = useState("");
-  const [sessionTab, setSessionTab] = useState<"upcoming" | "past">("upcoming");
+  const [sessionTab, setSessionTab] = useState<PrototypeSessionTab>("upcoming");
   const [task, setTask] = useState("");
   const [deadline, setDeadline] = useState("2026-10-28");
   const [timeWindow, setTimeWindow] = useState<string>(
@@ -394,25 +326,48 @@ export function PrototypeApp() {
   }, []);
 
   const changeRole = async (nextRole: Role) => {
-    const previousRole = role;
-    setRoleSelection(nextRole);
-    openScreen("home");
-    if (!authSession?.user) return;
-
-    const result = await authClient.updateUser({ activeRole: nextRole });
-    if (result.error) {
-      setRoleSelection(previousRole);
+    if (authActionInFlight.current || nextRole === role) return;
+    if (!authSession?.user) {
+      setRoleSelection(nextRole);
+      openScreen("home");
+      return;
+    }
+    authActionInFlight.current = true;
+    setAuthAction("role");
+    try {
+      const result = await authClient.updateUser({ activeRole: nextRole });
+      if (result.error) {
+        notify(t("prototypeRoleSaveFailed"));
+        return;
+      }
+      // Keep the previous workspace until the server has saved the new role.
+      setRoleSelection(nextRole);
+      openScreen("home");
+    } catch {
       notify(t("prototypeRoleSaveFailed"));
+    } finally {
+      authActionInFlight.current = false;
+      setAuthAction(null);
     }
   };
 
   const signOut = async () => {
-    const result = await authClient.signOut();
-    if (result.error) {
+    if (authActionInFlight.current) return;
+    authActionInFlight.current = true;
+    setAuthAction("signout");
+    try {
+      const result = await authClient.signOut();
+      if (result.error) {
+        notify(t("prototypeSignOutFailed"));
+        return;
+      }
+      router.push("/");
+    } catch {
       notify(t("prototypeSignOutFailed"));
-      return;
+    } finally {
+      authActionInFlight.current = false;
+      setAuthAction(null);
     }
-    router.push("/");
   };
 
   const visibleMentors = useMemo(() => {
@@ -493,7 +448,7 @@ export function PrototypeApp() {
 
   const setInvitationStatus = (
     id: number,
-    status: "pending" | "accepted" | "declined",
+    status: PrototypeInvitationStatus,
   ) => {
     setInvitationStates((current) => ({ ...current, [id]: status }));
     notify(
@@ -664,9 +619,11 @@ export function PrototypeApp() {
               className={styles.roleSwitch}
               role="group"
               aria-label={t("prototypeSwitchRole")}
+              aria-busy={authAction === "role"}
             >
               <button
                 className={role === "learner" ? styles.roleActive : ""}
+                disabled={authAction !== null}
                 onClick={() => void changeRole("learner")}
                 aria-pressed={role === "learner"}
               >
@@ -674,6 +631,7 @@ export function PrototypeApp() {
               </button>
               <button
                 className={role === "mentor" ? styles.roleActive : ""}
+                disabled={authAction !== null}
                 onClick={() => void changeRole("mentor")}
                 aria-pressed={role === "mentor"}
               >
@@ -797,215 +755,42 @@ export function PrototypeApp() {
           )}
 
           {screen === "home" && role === "mentor" && (
-            <>
-              <section className={styles.welcomeBlock}>
-                <div>
-                  <h1>{t("workspaceMentorHomeTitle")}</h1>
-                  <p>{t("workspaceMentorHomeText")}</p>
-                </div>
-              </section>
-              <section className={styles.inboxSection}>
-                <div className={styles.sectionHead}>
-                  <div>
-                    <h2>{t("prototypeInvitations")}</h2>
-                  </div>
-                  <button
-                    className={styles.textButton}
-                    onClick={() => openScreen("requests")}
-                  >
-                    {t("prototypeSeeAll")} <ArrowRight size={15} />
-                  </button>
-                </div>
-                {isDemoMode ? (
-                  <>
-                    <InvitationCard
-                      status={invitationStates[1] ?? "pending"}
-                      onAccept={() => setInvitationStatus(1, "accepted")}
-                      onDecline={() => setInvitationStatus(1, "declined")}
-                      onUndo={() => setInvitationStatus(1, "pending")}
-                      onOpen={() => openScreen("requests")}
-                    />
-                    <button
-                      className={styles.textButton}
-                      onClick={() => openScreen("requests")}
-                    >
-                      {t("workspaceMoreRequests")} <ArrowRight size={15} />
-                    </button>
-                  </>
-                ) : (
-                  <div className={styles.emptyState}>
-                    <h2>{t("prototypeNoInvitations")}</h2>
-                    <p>{t("prototypeNoInvitationsText")}</p>
-                  </div>
-                )}
-              </section>
-            </>
+            <PrototypeMentorHome
+              isDemoMode={isDemoMode}
+              invitationStates={invitationStates}
+              onStatusChange={setInvitationStatus}
+              onOpenInvitations={() => openScreen("requests")}
+            />
           )}
 
           {screen === "explore" && (
-            <section className={styles.exploreScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeSearchTitle")}</h1>
-                </div>
-              </div>
-              {isDemoMode ? (
-                <>
-                  <div className={styles.searchBar}>
-                    <Search size={19} />
-                    <input
-                      aria-label={t("prototypeSearchPlaceholder")}
-                      placeholder={t("prototypeSearchPlaceholder")}
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                    />
-                    <button
-                      onClick={() => setSearch("")}
-                      aria-label={t("prototypeClearSearchAction")}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className={styles.exploreToolbar}>
-                    <div
-                      className={styles.filterList}
-                      role="group"
-                      aria-label={t("prototypeFilterBySkill")}
-                    >
-                      {skillFilters.map((item) => (
-                        <button
-                          key={item}
-                          className={filter === item ? styles.filterActive : ""}
-                          onClick={() => setFilter(item)}
-                        >
-                          {item === "all"
-                            ? t("prototypeFilterAll")
-                            : item === "Design"
-                              ? t("prototypeFilterDesign")
-                              : item === "Data"
-                                ? t("prototypeFilterData")
-                                : item === "Programming"
-                                  ? t("prototypeFilterCode")
-                                  : t("prototypeFilterVideo")}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      className={`${styles.filterButton} ${savedOnly ? styles.savedFilterActive : ""}`}
-                      aria-pressed={savedOnly}
-                      onClick={() => setSavedOnly((value) => !value)}
-                    >
-                      <span>
-                        <Heart size={16} /> {t("prototypeSaved")}
-                      </span>
-                      <span>{favoriteIds.length}</span>
-                    </button>
-                  </div>
-                  <div className={styles.resultCaption}>
-                    {visibleMentors.length} {t("prototypeSampleProfileCount")}{" "}
-                    <span>·</span> {t("prototypeOnlyReviewedSkills")}
-                  </div>
-                  <div className={styles.mentorList}>
-                    {visibleMentors.map((mentor) => (
-                      <MentorRow
-                        key={mentor.id}
-                        mentor={mentor}
-                        favorite={favoriteIds.includes(mentor.id)}
-                        onFavorite={() => toggleFavorite(mentor.id)}
-                        onOpen={() => openMentor(mentor)}
-                      />
-                    ))}
-                  </div>
-                  {visibleMentors.length === 0 && (
-                    <div className={styles.emptyState}>
-                      <Search size={23} />
-                      <h2>{t("prototypeEmptyMentorSearch")}</h2>
-                      <p>{t("prototypeEmptyMentorSearchHint")}</p>
-                      <button
-                        className={styles.secondaryButton}
-                        onClick={() => {
-                          setSearch("");
-                          setFilter("all");
-                          setSavedOnly(false);
-                        }}
-                      >
-                        {t("prototypeClearFilters")}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className={styles.emptyState}>
-                  <Search size={23} />
-                  <h2>{t("prototypeNoMentorsYet")}</h2>
-                  <p>{t("prototypeNoMentorsYetText")}</p>
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("new-request")}
-                  >
-                    {t("prototypeDescribeTask")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
-            </section>
+            <PrototypeDiscovery
+              isDemoMode={isDemoMode}
+              search={search}
+              setSearch={setSearch}
+              filter={filter}
+              setFilter={setFilter}
+              savedOnly={savedOnly}
+              onToggleSaved={() => setSavedOnly((value) => !value)}
+              onClearFilters={() => {
+                setSearch("");
+                setFilter("all");
+                setSavedOnly(false);
+              }}
+              favoriteIds={favoriteIds}
+              visibleMentors={visibleMentors}
+              toggleFavorite={toggleFavorite}
+              openMentor={openMentor}
+              onNewRequest={() => openScreen("new-request")}
+            />
           )}
 
           {screen === "mentor-profile" && (
-            <section className={styles.personPage}>
-              <button
-                className={styles.backLink}
-                onClick={() => openScreen("explore")}
-              >
-                <ArrowLeft size={16} /> {t("prototypeBackToResults")}
-              </button>
-              <div className={styles.personHero}>
-                <span
-                  className={`${styles.avatarLarge} ${styles[`avatar${capitalize(selectedMentor.color)}`]}`}
-                >
-                  {selectedMentor.initials}
-                </span>
-                <div className={styles.personIdentity}>
-                  <h1>{selectedMentor.name}</h1>
-                  <p>
-                    {selectedMentorCopy.study} · {selectedMentorCopy.city}
-                  </p>
-                  <MentorSkills skills={selectedMentor.skills} />
-                </div>
-                <button
-                  className={styles.primaryButton}
-                  onClick={() => openScreen("new-request")}
-                >
-                  {t("prototypeAskMentor")} <ArrowRight size={17} />
-                </button>
-              </div>
-              <div className={styles.personContent}>
-                <section className={styles.personAbout}>
-                  <h2>{t("prototypeProfileTitle")}</h2>
-                  <p>{selectedMentorCopy.about}</p>
-                  <h3>{t("prototypeSkillEvidence")}</h3>
-                  <div className={styles.evidenceRow}>
-                    <div>
-                      <strong>{selectedMentorCopy.proof}</strong>
-                    </div>
-                  </div>
-                </section>
-                <aside className={styles.personAside}>
-                  <h2>{t("prototypeAvailable")}</h2>
-                  <div className={styles.availabilitySlot}>
-                    <CalendarDays size={18} />
-                    <span>{selectedMentor.availability}</span>
-                  </div>
-                  <div className={styles.howNext}>
-                    <strong>{t("prototypeHowItWorks")}</strong>
-                    <p>{t("prototypeHumanReview")}</p>
-                  </div>
-                  <p className={styles.contactPrivacy}>
-                    <ShieldCheck size={16} />{" "}
-                    {t("prototypeDirectoryContactRule")}
-                  </p>
-                </aside>
-              </div>
-            </section>
+            <PrototypeMentorCard
+              mentor={selectedMentor}
+              onBack={() => openScreen("explore")}
+              onRequest={() => openScreen("new-request")}
+            />
           )}
 
           {screen === "new-request" && (
@@ -1106,390 +891,80 @@ export function PrototypeApp() {
           )}
 
           {screen === "requests" && role === "learner" && (
-            <section className={styles.listScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeRequestsTitle")}</h1>
-                </div>
-                {requests.length > 0 && (
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("new-request")}
-                  >
-                    {t("prototypeSubmitRequest")} <ArrowRight size={17} />
-                  </button>
-                )}
-              </div>
-              {authSession?.user && requestsLoading ? (
-                <p role="status">{t("prototypeRequestsLoading")}</p>
-              ) : null}
-              {authSession?.user && requestsLoadError ? (
-                <div role="alert" className={styles.formNotice}>
-                  <p>{t("prototypeRequestsLoadError")}</p>
-                  <button
-                    className={styles.textButton}
-                    onClick={() => void loadAccountRequests()}
-                  >
-                    {t("prototypeRetry")}
-                  </button>
-                </div>
-              ) : null}
-              {!requestsLoading &&
-              !requestsLoadError &&
-              requests.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <h2>{t("prototypeNoRequestsTitle")}</h2>
-                  <p>{t("prototypeNoRequestsText")}</p>
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("new-request")}
-                  >
-                    {t("prototypeDescribeTask")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              ) : null}
-              <div className={styles.requestList}>
-                {requests.map((request) => (
-                  <RequestDetail
-                    key={request.id}
-                    request={request}
-                    onOpen={() =>
-                      notify(
-                        `${requestStateLabel(request.state, t)} · ${request.date}`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </section>
+            <PrototypeRequests
+              requests={requests}
+              hasAccount={Boolean(authSession?.user)}
+              requestsLoading={requestsLoading}
+              requestsLoadError={requestsLoadError}
+              onNewRequest={() => openScreen("new-request")}
+              onRetry={() => void loadAccountRequests()}
+              onOpen={notify}
+            />
           )}
 
           {screen === "requests" && role === "mentor" && (
-            <section className={styles.listScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeInvitations")}</h1>
-                </div>
-              </div>
-              {isDemoMode ? (
-                <div className={styles.invitationStack}>
-                  <InvitationCard
-                    status={invitationStates[1] ?? "pending"}
-                    onAccept={() => setInvitationStatus(1, "accepted")}
-                    onDecline={() => setInvitationStatus(1, "declined")}
-                    onUndo={() => setInvitationStatus(1, "pending")}
-                    onOpen={() => notify(t("prototypeInvitationTask"))}
-                  />
-                  <InvitationCard
-                    compact
-                    status={invitationStates[2] ?? "pending"}
-                    onAccept={() => setInvitationStatus(2, "accepted")}
-                    onDecline={() => setInvitationStatus(2, "declined")}
-                    onUndo={() => setInvitationStatus(2, "pending")}
-                    onOpen={() => notify(t("prototypeSecondInvitation"))}
-                  />
-                </div>
-              ) : (
-                <div className={styles.emptyState}>
-                  <h2>{t("prototypeNoInvitations")}</h2>
-                  <p>{t("prototypeNoSessionsText")}</p>
-                </div>
-              )}
-            </section>
+            <PrototypeInvitations
+              isDemoMode={isDemoMode}
+              invitationStates={invitationStates}
+              onStatusChange={setInvitationStatus}
+              onOpen={notify}
+            />
           )}
 
           {screen === "sessions" && (
-            <section className={styles.listScreen}>
-              <div className={styles.screenHeading}>
-                <div>
-                  <h1>{t("prototypeSessionsTitle")}</h1>
-                </div>
-              </div>
-              {isDemoMode ? (
-                <>
-                  <div className={styles.sessionTabs}>
-                    <button
-                      className={
-                        sessionTab === "upcoming" ? styles.sessionTabActive : ""
-                      }
-                      onClick={() => setSessionTab("upcoming")}
-                    >
-                      {t("prototypeUpcomingTab")} <span>1</span>
-                    </button>
-                    <button
-                      className={
-                        sessionTab === "past" ? styles.sessionTabActive : ""
-                      }
-                      onClick={() => setSessionTab("past")}
-                    >
-                      {t("prototypePastTab")} <span>2</span>
-                    </button>
-                  </div>
-                  {sessionTab === "upcoming" ? (
-                    <div className={styles.sessionDetailCard}>
-                      <div className={styles.sessionCalendar}>
-                        <strong>24</strong>
-                        <span>{t("prototypeOctoberShort")}</span>
-                      </div>
-                      <div className={styles.sessionDetailMain}>
-                        <span className={styles.confirmedPill}>
-                          <CheckCircle2 size={14} />{" "}
-                          {t("prototypeStatusConfirmedDemo")}
-                        </span>
-                        <h2>{t("prototypeSessionTitle")}</h2>
-                        <p>{t("prototypeSessionMeta")}</p>
-                        <div className={styles.sessionMeta}>
-                          <span>
-                            <CalendarDays size={15} />{" "}
-                            {t("prototypeSessionDate")}
-                          </span>
-                          <span>
-                            <Clock3 size={15} /> {t("prototypeSessionDuration")}
-                          </span>
-                        </div>
-                        <div className={styles.sessionPlan}>
-                          <strong>{t("prototypeSessionDetails")}</strong>
-                          <p>{t("prototypeSessionPlan")}</p>
-                        </div>
-                        <button
-                          className={styles.primaryButton}
-                          onClick={() => notify(t("prototypeDemoMeetingToast"))}
-                        >
-                          <Video size={17} /> {t("prototypeJoinSession")}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={styles.pastSessions}>
-                      <div className={styles.pastSessionRow}>
-                        <span
-                          className={`${styles.avatar} ${styles.avatarGreen}`}
-                        >
-                          TK
-                        </span>
-                        <div>
-                          <strong>{t("prototypeSessionHistoryTitle")}</strong>
-                          <small>{t("prototypeSessionHistoryDateOne")}</small>
-                        </div>
-                        <span className={styles.completePill}>
-                          <Check size={14} /> {t("prototypeSessionCompleted")}
-                        </span>
-                      </div>
-                      <div className={styles.pastSessionRow}>
-                        <span
-                          className={`${styles.avatar} ${styles.avatarCoral}`}
-                        >
-                          MB
-                        </span>
-                        <div>
-                          <strong>{t("prototypeSessionHistoryFigma")}</strong>
-                          <small>{t("prototypeSessionHistoryDateTwo")}</small>
-                        </div>
-                        <span className={styles.completePill}>
-                          <Check size={14} /> {t("prototypeSessionCompleted")}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className={styles.emptyState}>
-                  <h2>{t("prototypeNoSessions")}</h2>
-                  <p>{t("prototypeNoSessionsText")}</p>
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => openScreen("explore")}
-                  >
-                    {t("prototypeNoSessionsAction")} <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
-            </section>
+            <PrototypeSessions
+              isDemoMode={isDemoMode}
+              sessionTab={sessionTab}
+              setSessionTab={setSessionTab}
+              onOpenDemoMeeting={() => notify(t("prototypeDemoMeetingToast"))}
+              onExplore={() => openScreen("explore")}
+            />
           )}
 
           {screen === "profile" && (
-            <section className={styles.profileScreen}>
-              {editingProfile && isDemoMode ? (
-                <form
-                  className={styles.profileForm}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    setEditingProfile(false);
-                    setAddingSkill(false);
-                    setSkillDraft("");
-                    notify(t("prototypeProfileSavedToast"));
-                  }}
-                >
-                  <h2>{t("prototypeNewProfileTitle")}</h2>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeDisplayName")}
-                    <input
-                      value={displayName}
-                      onChange={(event) =>
-                        setDisplayNameDraft(event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeStudyArea")}
-                    <input
-                      value={studyArea}
-                      onChange={(event) =>
-                        setStudyAreaDraft(event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className={styles.fieldLabel}>
-                    {t("prototypeAbout")}
-                    <textarea
-                      value={about}
-                      onChange={(event) => setAboutDraft(event.target.value)}
-                      rows={3}
-                    />
-                  </label>
-                  <div className={styles.profileSkills}>
-                    <strong>{t("prototypeSkillListTitle")}</strong>
-                    <div className={styles.skillChips}>
-                      {mySkills.map((skill) => (
-                        <span key={skill}>
-                          {skill}
-                          <button
-                            aria-label={`${t("prototypeNewSkillRemove")} ${skill}`}
-                            onClick={() => {
-                              setMySkillsDraft((current) =>
-                                (current ?? mySkills).filter(
-                                  (item) => item !== skill,
-                                ),
-                              );
-                            }}
-                            type="button"
-                          >
-                            <X size={13} />
-                          </button>
-                        </span>
-                      ))}
-                      <button
-                        className={styles.addSkill}
-                        type="button"
-                        onClick={() => setAddingSkill((value) => !value)}
-                      >
-                        {t("prototypeNewSkillAdd")}
-                      </button>
-                    </div>
-                    {addingSkill && (
-                      <div className={styles.addSkillForm}>
-                        <label className={styles.srOnly} htmlFor="new-skill">
-                          {t("prototypeNewSkillPlaceholder")}
-                        </label>
-                        <input
-                          id="new-skill"
-                          value={skillDraft}
-                          onChange={(event) =>
-                            setSkillDraft(event.target.value)
-                          }
-                          placeholder={t("prototypeNewSkillPlaceholder")}
-                        />
-                        <button
-                          className={styles.secondaryButton}
-                          type="button"
-                          onClick={saveSkill}
-                        >
-                          {t("prototypeAddSkillAction")}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.formActions}>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={cancelProfileEdit}
-                    >
-                      {t("prototypeCancel")}
-                    </button>
-                    <button className={styles.primaryButton} type="submit">
-                      <Check size={16} /> {t("prototypeSave")}
-                    </button>
-                  </div>
-                </form>
-              ) : isDemoMode ? (
-                <article className={styles.profileView}>
-                  <header className={styles.profileIdentity}>
-                    <span className={styles.avatarProfile} aria-hidden="true">
-                      {displayName
-                        .split(" ")
-                        .map((part) => part[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </span>
-                    <div>
-                      <h1>{displayName}</h1>
-                      {studyArea && <p>{studyArea}</p>}
-                    </div>
-                    <button
-                      className={styles.secondaryButton}
-                      onClick={() => {
-                        setProfileSnapshot({
-                          name: displayName,
-                          study: studyArea,
-                          about,
-                          skills: [...mySkills],
-                        });
-                        setEditingProfile(true);
-                      }}
-                    >
-                      {t("profileEditAction")}
-                    </button>
-                  </header>
-                  {about && (
-                    <section className={styles.profileSection}>
-                      <h2>{t("profileAboutHeading")}</h2>
-                      <p>{about}</p>
-                    </section>
-                  )}
-                  {mySkills.length > 0 && (
-                    <section className={styles.profileSection}>
-                      <h2>{t("prototypeSkillListTitle")}</h2>
-                      <ul className={styles.profileSkillList}>
-                        {mySkills.map((skill) => (
-                          <li key={skill}>{skill}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                </article>
-              ) : (
-                <article className={styles.profileView}>
-                  <header className={styles.profileIdentity}>
-                    <span className={styles.avatarProfile} aria-hidden="true">
-                      {accountInitials}
-                    </span>
-                    <div>
-                      <h1>{authSession?.user.name}</h1>
-                      <p>
-                        <strong>{t("prototypeProfileEmail")}:</strong>{" "}
-                        {authSession?.user.email}
-                      </p>
-                    </div>
-                  </header>
-                  <section className={styles.profileSection}>
-                    <h2>{t("prototypeEmptyProfile")}</h2>
-                    <p>{t("prototypeEmptyProfileText")}</p>
-                    <button
-                      className={styles.primaryButton}
-                      onClick={() =>
-                        openScreen(role === "learner" ? "explore" : "home")
-                      }
-                    >
-                      {role === "learner"
-                        ? t("prototypeProfileGoToMentors")
-                        : t("prototypeNavHome")}{" "}
-                      <ArrowRight size={16} />
-                    </button>
-                  </section>
-                </article>
-              )}
-            </section>
+            <PrototypeProfile
+              isDemoMode={isDemoMode}
+              editingProfile={editingProfile}
+              displayName={displayName}
+              studyArea={studyArea}
+              about={about}
+              mySkills={mySkills}
+              accountInitials={accountInitials}
+              account={authSession?.user}
+              role={role}
+              addingSkill={addingSkill}
+              skillDraft={skillDraft}
+              onSave={() => {
+                setEditingProfile(false);
+                setAddingSkill(false);
+                setSkillDraft("");
+                notify(t("prototypeProfileSavedToast"));
+              }}
+              onCancel={cancelProfileEdit}
+              onEdit={() => {
+                setProfileSnapshot({
+                  name: displayName,
+                  study: studyArea,
+                  about,
+                  skills: [...mySkills],
+                });
+                setEditingProfile(true);
+              }}
+              onRemoveSkill={(skill) =>
+                setMySkillsDraft((current) =>
+                  (current ?? mySkills).filter((item) => item !== skill),
+                )
+              }
+              onToggleAddingSkill={() => setAddingSkill((value) => !value)}
+              onAddSkill={saveSkill}
+              onNameChange={setDisplayNameDraft}
+              onStudyChange={setStudyAreaDraft}
+              onAboutChange={setAboutDraft}
+              onSkillDraftChange={setSkillDraft}
+              onContinue={() =>
+                openScreen(role === "learner" ? "explore" : "home")
+              }
+            />
           )}
 
           {screen === "settings" && (
@@ -1569,6 +1044,8 @@ export function PrototypeApp() {
                 </button>
                 <button
                   className={`${styles.settingsLink} ${styles.signOutLink}`}
+                  disabled={authAction !== null}
+                  aria-busy={authAction === "signout"}
                   onClick={() =>
                     authSession?.user ? void signOut() : router.push("/signup")
                   }
@@ -1607,212 +1084,6 @@ export function PrototypeApp() {
   );
 }
 
-function RequestDetail({
-  request,
-  onOpen,
-}: {
-  request: Request;
-  onOpen: () => void;
-}) {
-  const t = useTranslations();
-  const stateLabel = requestStateLabel(request.state, t);
-  return (
-    <article className={styles.requestDetail}>
-      <div className={styles.requestDetailTop}>
-        <span
-          className={
-            request.state === "proposed"
-              ? styles.requestStateBlue
-              : styles.requestStateNeutral
-          }
-        >
-          <span /> {stateLabel}
-        </span>
-        <span>{request.date}</span>
-      </div>
-      <h2>{request.title}</h2>
-      <p>{request.detail}</p>
-      <div className={styles.requestDetailBottom}>
-        <span>
-          <UserRound size={15} /> {request.person}
-        </span>
-        <button className={styles.textButton} onClick={onOpen}>
-          {t("prototypeOpenRequest")} <ArrowRight size={15} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function requestStateLabel(
-  state: Request["state"],
-  t: ReturnType<typeof useTranslations>,
-) {
-  return {
-    review: t("prototypeStatusReview"),
-    proposed: t("prototypeStatusTimeProposed"),
-    confirmed: t("prototypeStatusConfirmed"),
-    completed: t("prototypeStatusCompleted"),
-  }[state];
-}
-
-function InvitationCard({
-  compact = false,
-  status,
-  onAccept,
-  onDecline,
-  onUndo,
-  onOpen,
-}: {
-  compact?: boolean;
-  status: "pending" | "accepted" | "declined";
-  onAccept: () => void;
-  onDecline: () => void;
-  onUndo: () => void;
-  onOpen: () => void;
-}) {
-  const t = useTranslations();
-  const stateLabel =
-    status === "accepted"
-      ? t("prototypeInvitationStateAccepted")
-      : t("prototypeInvitationStateDeclined");
-  return (
-    <article
-      className={`${styles.invitationCard} ${compact ? styles.invitationCompact : ""}`}
-    >
-      <div className={styles.invitationTop}>
-        <div className={styles.invitationPerson}>
-          <span
-            className={`${styles.avatar} ${compact ? styles.avatarGold : styles.avatarCoral}`}
-          >
-            {compact ? "NL" : "NM"}
-          </span>
-          <div>
-            <strong>
-              {compact
-                ? t("prototypeInvitationNurlan")
-                : t("prototypeInvitationNadia")}
-            </strong>
-            <small>{t("prototypeStudentDue")}</small>
-          </div>
-        </div>
-      </div>
-      <h3>
-        {compact
-          ? t("prototypeInvitationSecond")
-          : t("prototypeInvitationTask")}
-      </h3>
-      <p>{t("prototypeInvitationMeta")}</p>
-      {!compact && (
-        <div className={styles.invitationExtra}>
-          <span>
-            <BookOpen size={16} /> {t("prototypeTriedExamples")}
-          </span>
-          <span>
-            <Clock3 size={16} /> {t("prototypeTwoWindows")}
-          </span>
-        </div>
-      )}
-      {status === "pending" ? (
-        <div className={styles.invitationActions}>
-          <button className={styles.textButton} onClick={onOpen}>
-            {t("prototypeRequestReviewAction")}
-          </button>
-          <button className={styles.secondaryButton} onClick={onDecline}>
-            {t("prototypeNotThisTime")}
-          </button>
-          <button className={styles.primaryButton} onClick={onAccept}>
-            {t("prototypeCanHelpAction")} <ArrowRight size={15} />
-          </button>
-        </div>
-      ) : (
-        <div className={styles.invitationResolved}>
-          <span
-            className={
-              status === "accepted" ? styles.completePill : styles.passedPill
-            }
-          >
-            <Check size={14} /> {stateLabel}
-          </span>
-          <button className={styles.textButton} onClick={onUndo}>
-            {t("prototypeUndoAction")}
-          </button>
-        </div>
-      )}
-    </article>
-  );
-}
-
-function MentorSkills({ skills }: { skills: readonly string[] }) {
-  const t = useTranslations();
-  return (
-    <dl className={styles.mentorSkills}>
-      <dt>{t("prototypeCanHelpWith")}</dt>
-      <dd>
-        <ul>
-          {skills.map((skill) => (
-            <li key={skill}>{skill}</li>
-          ))}
-        </ul>
-      </dd>
-    </dl>
-  );
-}
-
-function MentorRow({
-  mentor,
-  favorite,
-  onFavorite,
-  onOpen,
-}: {
-  mentor: Mentor;
-  favorite: boolean;
-  onFavorite: () => void;
-  onOpen: () => void;
-}) {
-  const t = useTranslations();
-  const localizedMentor = localizeMentor(mentor, t);
-  const avatarClass =
-    styles[`avatar${capitalize(mentor.color)}` as keyof typeof styles];
-  return (
-    <article className={styles.mentorRow}>
-      <span className={`${styles.avatarLarge} ${avatarClass}`}>
-        {mentor.initials}
-      </span>
-      <div className={styles.mentorRowMain}>
-        <div className={styles.mentorNameLine}>
-          <h2>{mentor.name}</h2>
-          <span className={styles.verifiedLine}>
-            <ShieldCheck size={15} /> {t("prototypeProfileVerifiedMock")}
-          </span>
-        </div>
-        <p>
-          {localizedMentor.study} · {localizedMentor.city}
-        </p>
-        <MentorSkills skills={mentor.skills} />
-        <div className={styles.mentorAvailability}>
-          <CalendarDays size={15} /> {t("prototypeAvailable")}:{" "}
-          <strong>{localizedMentor.availability}</strong>
-        </div>
-      </div>
-      <div className={styles.mentorRowActions}>
-        <button
-          className={`${styles.favoriteButton} ${favorite ? styles.favoriteActive : ""}`}
-          onClick={onFavorite}
-          aria-label={
-            favorite ? t("prototypeUnsaveMentor") : t("prototypeSaveMentor")
-          }
-        >
-          <Heart size={18} fill={favorite ? "currentColor" : "none"} />
-        </button>
-        <button className={styles.secondaryButton} onClick={onOpen}>
-          {t("prototypeViewProfile")} <ArrowRight size={15} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
 function SettingToggle({
   title,
   detail,
@@ -1841,8 +1112,4 @@ function SettingToggle({
       </button>
     </div>
   );
-}
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }

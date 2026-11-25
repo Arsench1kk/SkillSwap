@@ -37,7 +37,7 @@ vi.mock("@/domain/events", () => ({
 import { POST } from "../../app/api/rating/route";
 import { getRatingPage } from "./rating-page";
 
-const connectionString = process.env.SKILLSWAP_D4_TEST_DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {

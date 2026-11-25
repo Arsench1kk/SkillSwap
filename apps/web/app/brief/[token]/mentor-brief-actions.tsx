@@ -75,8 +75,7 @@ export function MentorBriefActions({
       if (action === "propose") {
         setHasProposal(true);
         setProposalSent(true);
-      }
-      else setDeclineSent(true);
+      } else setDeclineSent(true);
     } catch {
       setError({ action, message: t("briefNetworkError") });
     } finally {
@@ -93,7 +92,8 @@ export function MentorBriefActions({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ token, action: "withdraw" }),
       });
-      if (!response.ok) setError({ action: "decline", message: t("briefActionUnavailable") });
+      if (!response.ok)
+        setError({ action: "decline", message: t("briefActionUnavailable") });
       else setWithdrawn(true);
     } catch {
       setError({ action: "decline", message: t("briefNetworkError") });
@@ -109,13 +109,26 @@ export function MentorBriefActions({
       <div className="brief-action-result" role="status" aria-live="polite">
         <h3>{t("briefAnsweredTitle")}</h3>
         <p>{t("briefAwaitingLearner")}</p>
-        <button className="ui-button ui-button-secondary brief-submit" type="button" onClick={() => setProposalSent(false)}>
+        <button
+          className="ui-button ui-button-secondary brief-submit"
+          type="button"
+          onClick={() => setProposalSent(false)}
+        >
           {t("briefChangeTime")}
         </button>
-        <button className="ui-button ui-button-secondary brief-submit" type="button" disabled={pending} onClick={withdraw}>
+        <button
+          className="ui-button ui-button-secondary brief-submit"
+          type="button"
+          disabled={pending}
+          onClick={withdraw}
+        >
           {t("briefWithdraw")}
         </button>
-        {error ? <p className="brief-error" role="alert">{error.message}</p> : null}
+        {error ? (
+          <p className="brief-error" role="alert">
+            {error.message}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -124,7 +137,14 @@ export function MentorBriefActions({
     return (
       <div className="brief-action-result" role="status" aria-live="polite">
         <p>{t("briefDeclinedDone")}</p>
-        <button className="ui-button ui-button-secondary brief-submit" type="button" onClick={() => { setDeclineSent(false); setMode("propose"); }}>
+        <button
+          className="ui-button ui-button-secondary brief-submit"
+          type="button"
+          onClick={() => {
+            setDeclineSent(false);
+            setMode("propose");
+          }}
+        >
           {t("briefProposeTime")}
         </button>
       </div>
@@ -139,7 +159,7 @@ export function MentorBriefActions({
             className="brief-action-form"
             onSubmit={(event) => send(event, "propose")}
           >
-        <fieldset className="brief-fieldset">
+            <fieldset className="brief-fieldset">
               <legend>{t("briefChooseWindow")}</legend>
               <div className="brief-slot-list">
                 {windows.map((window, index) => (
@@ -216,18 +236,24 @@ export function MentorBriefActions({
               {t("briefWithdraw")}
             </button>
           ) : null}
-          {error?.action === "decline" ? <p className="brief-error" role="alert">{error.message}</p> : null}
+          {error?.action === "decline" ? (
+            <p className="brief-error" role="alert">
+              {error.message}
+            </p>
+          ) : null}
 
-          {state !== "declined" ? <div className="brief-action-form brief-decline-form">
-            <button
-              className="ui-button ui-button-secondary brief-submit"
-              type="button"
-              onClick={() => setMode("decline")}
-              disabled={pending}
-            >
-              {t("briefDecline")}
-            </button>
-          </div> : null}
+          {state !== "declined" ? (
+            <div className="brief-action-form brief-decline-form">
+              <button
+                className="ui-button ui-button-secondary brief-submit"
+                type="button"
+                onClick={() => setMode("decline")}
+                disabled={pending}
+              >
+                {t("briefDecline")}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : (
         <form

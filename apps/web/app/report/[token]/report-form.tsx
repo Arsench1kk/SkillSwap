@@ -87,7 +87,10 @@ export function ReportForm({
           {error}
         </p>
       )}
-      <button className="ui-button ui-button-primary request-submit" disabled={busy}>
+      <button
+        className="ui-button ui-button-primary request-submit"
+        disabled={busy}
+      >
         {busy ? messages.requestWorking : messages.reportSubmit}
       </button>
     </form>

@@ -6,9 +6,12 @@ import {
   learnerRequests,
   matches,
   mentorBriefs,
+  mentorProfiles,
   participants,
   skillEvidence,
 } from "@/db/schema";
+import { currentDataOrigin } from "@/domain/event-context";
+import { studentStatusForMatching } from "@/domain/mentor-student-status";
 import { requireActiveOperator } from "@/domain/operator-access";
 
 export function listUnassignedRequests(
@@ -78,6 +81,10 @@ export function listVerifiedSkills(
         mentor,
         eq(mentor.participantId, skillEvidence.mentorParticipantId),
       )
+      .innerJoin(
+        mentorProfiles,
+        eq(mentorProfiles.participantId, mentor.participantId),
+      )
       .where(
         and(
           eq(learnerRequests.id, z.uuid().parse(requestId)),
@@ -86,6 +93,7 @@ export function listVerifiedSkills(
           eq(skillEvidence.verificationState, "verified"),
           eq(mentor.status, "active"),
           eq(mentor.role, "mentor"),
+          studentStatusForMatching(currentDataOrigin()),
         ),
       )
       .orderBy(asc(skillEvidence.topic), asc(skillEvidence.id))

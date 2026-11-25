@@ -1,8 +1,9 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { participants, skillEvidence } from "@/db/schema";
+import { mentorProfiles, participants, skillEvidence } from "@/db/schema";
 import type { DatabaseExecutor } from "@/db/types";
 import { requireActiveOperator } from "@/domain/operator-access";
+import { readableSkillProof } from "@/domain/skill-proof-retention";
 
 const pendingActiveMentor = and(
   eq(skillEvidence.verificationState, "pending"),
@@ -28,7 +29,7 @@ export function listPendingSkillEvidence(
         participants,
         eq(participants.participantId, skillEvidence.mentorParticipantId),
       )
-      .where(pendingActiveMentor)
+      .where(and(pendingActiveMentor, readableSkillProof(new Date())))
       .orderBy(asc(skillEvidence.createdAt), asc(skillEvidence.id))
       .limit(50);
   });
@@ -56,7 +57,38 @@ export function getPendingSkillProof(
         participants,
         eq(participants.participantId, skillEvidence.mentorParticipantId),
       )
-      .where(and(pendingActiveMentor, eq(skillEvidence.id, id)));
+      .where(
+        and(
+          pendingActiveMentor,
+          eq(skillEvidence.id, id),
+          readableSkillProof(new Date()),
+        ),
+      );
     return proof ?? null;
+  });
+}
+
+export function listPendingStudentVerifications(
+  database: DatabaseExecutor,
+  operatorId: string,
+) {
+  return database.transaction(async (tx) => {
+    await requireActiveOperator(tx, operatorId);
+    return tx
+      .select({ mentorId: mentorProfiles.participantId })
+      .from(mentorProfiles)
+      .innerJoin(
+        participants,
+        eq(participants.participantId, mentorProfiles.participantId),
+      )
+      .where(
+        and(
+          isNull(mentorProfiles.studentStatusVerified),
+          eq(participants.status, "active"),
+          eq(participants.role, "mentor"),
+        ),
+      )
+      .orderBy(asc(mentorProfiles.createdAt), asc(mentorProfiles.participantId))
+      .limit(50);
   });
 }

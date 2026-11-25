@@ -4,7 +4,16 @@ import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
 import { events, participants } from "@/db/schema";
 
-export const skillVerificationDecision = z.enum(["verified", "rejected"]);
+export const operatorVerificationDecision = z.enum(["verified", "rejected"]);
+
+function isVerificationDecision(
+  name: (typeof schema.eventName.enumValues)[number],
+) {
+  return (
+    name === "skill_verification_decided" ||
+    name === "mentor_student_status_decided"
+  );
+}
 
 const eventInputSchema = z
   .object({
@@ -42,19 +51,19 @@ const eventInputSchema = z
         message: "Required for this event",
       });
     }
-    if (event.eventName === "skill_verification_decided") {
-      if (!skillVerificationDecision.safeParse(event.reasonCode).success) {
+    if (isVerificationDecision(event.eventName)) {
+      if (!operatorVerificationDecision.safeParse(event.reasonCode).success) {
         ctx.addIssue({
           code: "custom",
           path: ["reasonCode"],
-          message: "Required skill verification decision",
+          message: "Required verification decision",
         });
       }
       if (event.note != null) {
         ctx.addIssue({
           code: "custom",
           path: ["note"],
-          message: "Skill verification events cannot contain notes",
+          message: "Verification events cannot contain notes",
         });
       }
     }
@@ -141,10 +150,10 @@ export async function recordEvent(
   if (!participant) throw new Error("Event participant not found");
 
   if (
-    input.eventName === "skill_verification_decided" &&
+    isVerificationDecision(input.eventName) &&
     (participant.role !== "mentor" || !context.actorParticipantId)
   ) {
-    throw new Error("Skill verification requires a mentor and operator actor");
+    throw new Error("Verification requires a mentor and operator actor");
   }
 
   if (context.actorParticipantId) {

@@ -78,6 +78,13 @@
       "when": 1795618623162,
       "tag": "0010_skill_verification_decided",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795619762579,
+      "tag": "0011_mentor_student_status_and_proof_retention",
+      "breakpoints": true
     }
   ]
 }

@@ -1,15 +1,18 @@
 import { z } from "zod";
 import { db, pool } from "../../src/db/client";
 import { dataOrigin } from "../../src/db/schema";
+import { operatorVerificationDecision } from "../../src/domain/events";
+import { setMentorStudentStatus } from "../../src/domain/mentor-student-status";
 import { setSkillVerification } from "../../src/domain/skill-verification";
 import { formatKazakhstanTime } from "../../src/domain/time";
 import {
   getPendingSkillProof,
   listPendingSkillEvidence,
+  listPendingStudentVerifications,
 } from "../../src/services/operator/verification-queue";
 
 const usage =
-  "Usage: verify-skill.ts queue <operator ID> | proof <operator ID> <skill UUID> | decide <operator ID> <skill UUID> <verified|rejected>";
+  "Usage: verify-skill.ts queue <operator ID> | proof <operator ID> <skill UUID> | decide <operator ID> <skill UUID> <verified|rejected> | students <operator ID> | student <operator ID> <mentor ID> <verified|rejected>";
 const unavailable = "Pending skill unavailable.";
 
 async function main() {
@@ -37,11 +40,23 @@ async function main() {
     console.log(JSON.stringify(proof, null, 2));
     return;
   }
-  const [skillId, state] = args;
+  if (command === "students" && args.length === 0) {
+    console.log(
+      JSON.stringify(
+        await listPendingStudentVerifications(db, operatorId),
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  const [subjectId, decision] = args;
+  const { success, data: state } =
+    operatorVerificationDecision.safeParse(decision);
   if (
-    command !== "decide" ||
+    (command !== "decide" && command !== "student") ||
     args.length !== 2 ||
-    (state !== "verified" && state !== "rejected")
+    !success
   )
     throw new Error(usage);
   if (
@@ -50,22 +65,33 @@ async function main() {
   )
     throw new Error("Set SKILLSWAP_DATA_ORIGIN for this environment.");
 
-  const decision = await setSkillVerification(db, {
+  if (command === "student") {
+    const updated = await setMentorStudentStatus(db, {
+      operatorId,
+      mentorId: subjectId,
+      state,
+    });
+    if (!updated) throw new Error("No student status change.");
+    console.log(updated.mentorId, state);
+    return;
+  }
+
+  const updated = await setSkillVerification(db, {
     operatorParticipantId: operatorId,
-    skillEvidenceId: skillId,
+    skillEvidenceId: subjectId,
     state,
   });
-  if (!decision) throw new Error(unavailable);
-  console.log(decision.skillId, decision.state);
+  if (!updated) throw new Error(unavailable);
+  console.log(updated.skillId, updated.state);
 }
 
 main()
   .catch((error: unknown) => {
     console.error(
       error instanceof z.ZodError
-        ? "Check the operator ID and skill UUID."
+        ? "Check the operator ID and the mentor ID or skill UUID."
         : error instanceof Error &&
-            /^(Usage:|Run from|Set SKILLSWAP_DATA_ORIGIN|Active operator required|Pending skill unavailable)/.test(
+            /^(Usage:|Run from|Set SKILLSWAP_DATA_ORIGIN|Active operator required|Pending skill unavailable|No student status change)/.test(
               error.message,
             )
           ? error.message

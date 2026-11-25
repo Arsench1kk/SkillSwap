@@ -149,6 +149,7 @@ export const eventName = pgEnum("event_name", [
   "session_cancelled",
   "mentor_join_submitted",
   "skill_verification_decided",
+  "mentor_student_status_decided",
 ]);
 export const tokenPurpose = pgEnum("token_purpose", [
   "learner_status",
@@ -286,20 +287,37 @@ export const learnerRequests = pgTable(
   ],
 );
 
-export const mentorProfiles = pgTable("mentor_profiles", {
-  participantId: text("participant_id")
-    .primaryKey()
-    .references(() => participants.participantId),
-  displayName: text("display_name"),
-  experienceStatement: text("experience_statement"),
-  availabilityWindows: jsonb("availability_windows")
-    .$type<TimeWindow[]>()
-    .notNull()
-    .default([]),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-    .notNull()
-    .defaultNow(),
-});
+export const mentorProfiles = pgTable(
+  "mentor_profiles",
+  {
+    participantId: text("participant_id")
+      .primaryKey()
+      .references(() => participants.participantId),
+    displayName: text("display_name"),
+    experienceStatement: text("experience_statement"),
+    availabilityWindows: jsonb("availability_windows")
+      .$type<TimeWindow[]>()
+      .notNull()
+      .default([]),
+    studentStatusVerified: boolean("student_status_verified"),
+    studentStatusCheckedAt: timestamp("student_status_checked_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    studentStatusCheckedBy: text("student_status_checked_by").references(
+      () => participants.participantId,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "mentor_profiles_student_status_check",
+      sql`(${table.studentStatusVerified} IS NULL AND ${table.studentStatusCheckedAt} IS NULL AND ${table.studentStatusCheckedBy} IS NULL) OR (${table.studentStatusVerified} IS NOT NULL AND ${table.studentStatusCheckedAt} IS NOT NULL AND ${table.studentStatusCheckedBy} IS NOT NULL)`,
+    ),
+  ],
+);
 
 export const skillEvidence = pgTable(
   "skill_evidence",
@@ -311,7 +329,7 @@ export const skillEvidence = pgTable(
     category: skillCategory("category").notNull(),
     topic: text("topic").notNull(),
     proofType: text("proof_type").notNull(),
-    proofReference: text("proof_reference").notNull(),
+    proofReference: text("proof_reference"),
     verificationState: skillVerificationState("verification_state")
       .notNull()
       .default("pending"),

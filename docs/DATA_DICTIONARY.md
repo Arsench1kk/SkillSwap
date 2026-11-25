@@ -34,6 +34,11 @@ X2 пишет категорию в событие `safety_flag`, а необя�
 
 Добавлены мной (в документах их нет, но без них не собрать метрики): mentor_no_reply (явная запись молчания, чтобы оно не терялось), eligibility_checked, match_proposed, safety_flag, followup_48h.
 
+Ручная проверка навыка записывает событие `skill_verification_decided`.
+`participant_id` — наставник, `actor` — оператор, `timestamp_utc` — время
+решения, `reason_code` — `verified` или `rejected`. Ссылка на работу, имя и
+контакты в событие не попадают.
+
 ## data_origin
 
 - `real_pilot`: реальный учащийся с реальной задачей.

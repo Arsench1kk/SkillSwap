@@ -4,6 +4,8 @@ import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
 import { events, participants } from "@/db/schema";
 
+export const skillVerificationDecision = z.enum(["verified", "rejected"]);
+
 const eventInputSchema = z
   .object({
     eventName: z.enum(schema.eventName.enumValues),
@@ -39,6 +41,22 @@ const eventInputSchema = z
         path: ["reasonCode"],
         message: "Required for this event",
       });
+    }
+    if (event.eventName === "skill_verification_decided") {
+      if (!skillVerificationDecision.safeParse(event.reasonCode).success) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["reasonCode"],
+          message: "Required skill verification decision",
+        });
+      }
+      if (event.note != null) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["note"],
+          message: "Skill verification events cannot contain notes",
+        });
+      }
     }
     if (event.sourceChannel && !/^[a-zA-Z0-9_-]+$/.test(event.sourceChannel)) {
       ctx.addIssue({
@@ -121,6 +139,13 @@ export async function recordEvent(
     .where(eq(participants.participantId, context.participantId))
     .limit(1);
   if (!participant) throw new Error("Event participant not found");
+
+  if (
+    input.eventName === "skill_verification_decided" &&
+    (participant.role !== "mentor" || !context.actorParticipantId)
+  ) {
+    throw new Error("Skill verification requires a mentor and operator actor");
+  }
 
   if (context.actorParticipantId) {
     const [actor] = await database

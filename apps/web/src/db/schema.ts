@@ -148,6 +148,7 @@ export const eventName = pgEnum("event_name", [
   "match_declined",
   "session_cancelled",
   "mentor_join_submitted",
+  "skill_verification_decided",
 ]);
 export const tokenPurpose = pgEnum("token_purpose", [
   "learner_status",

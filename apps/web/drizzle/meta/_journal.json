@@ -71,6 +71,13 @@
       "when": 1795616826568,
       "tag": "0009_session_actual_start",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795618623162,
+      "tag": "0010_skill_verification_decided",
+      "breakpoints": true
     }
   ]
 }

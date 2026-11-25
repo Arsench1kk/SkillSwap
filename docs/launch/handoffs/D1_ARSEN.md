@@ -599,9 +599,10 @@
   ссылок проходят в одной транзакции. Срок до 24 часов после назначенного
   начала. В X2 для новых ссылок сохраняется проверка участника по встрече.
 - **Действие D5:** из `apps/web` с операторским доступом к БД запустить
-  `npx tsx scripts/operator/publish-session.ts --list`. Для выдачи установить
-  `NEXT_PUBLIC_APP_URL` и запустить ту же команду с UUID встречи и URL
-  Google Meet в приватном терминале. Отправить каждому его ссылку вручную.
+  `npx tsx scripts/operator/publish-session.ts <operator ID> --list`.
+  Для выдачи установить `NEXT_PUBLIC_APP_URL` и передать активный ID
+  оператора, UUID встречи и URL Google Meet в приватном терминале.
+  См. обновление [D1-H027](#d1-h027). Отправить каждому его ссылку вручную.
   В БД хранятся хеши. D4 переиспользует проверку участия и порядок блокировок
   match → session. D6 сохраняет миграцию и тесты L4/L5 в релизных проверках.
 - **Проверки №21:** lint, typecheck, Prettier, чистая миграция PostgreSQL 16,
@@ -812,6 +813,34 @@
 - **D6:** 23 целевых теста, lint, typecheck и форматирование пройдены.
   [CI PR №27](https://github.com/Arsench1kk/SkillSwap/actions/runs/45683878141). Добавлена целевая проверка обычных route handlers
   на временной PostgreSQL. Новых миграций, зависимостей и строк нет.
+
+<a id="d1-h027"></a>
+
+## D1-H027 — выдача, отзыв и проверки операторского доступа
+
+- **Исполнитель:** Арсен (D1). **Владельцы затронутых модулей:** Тогжан
+  (D5) и Нурлан (D4). **Адресаты:** D2, D3, D4, D5, D6.
+  [PR №28](https://github.com/Arsench1kk/SkillSwap/pull/28) объединён в main
+  коммитом `b6d37904578eda1f8771835c29446467c6b45306`. Ветка `codex/arsen-operator-access-lifecycle`,
+  head `93a201771dc6a05c8707ee9b710ba2187e970f30`, base
+  `3345d96f1174a0def9493ec56645ec1c0c922bac`.
+- **D1/D5:** из `apps/web` в приватном терминале использовать
+  `npx tsx scripts/operator/manage-access.ts` с `new-id`,
+  `grant <operator ID> [admin ID]` или `revoke <operator ID> [admin ID]`.
+  Нужны `SKILLSWAP_OPERATOR_ADMIN_DATABASE_URL` с ролью владельца целевой
+  БД и `SKILLSWAP_DATA_ORIGIN`. При повторе указывать исходный ID.
+  Отозванный ID больше не выдаётся. Выдача и отзыв атомарны с событием
+  `operator_access_changed`. Отдельный ID администратора указывать при
+  наличии. Обычные роли аккаунта доступа оператора не дают.
+- **D4/D5:** обновить подсказки и вызовы `publish-session.ts` на
+  `<operator ID> --list` и `<operator ID> <session UUID> <Google Meet URL>`.
+  Экспорт запускать как `npm run db:export-events -- <operator ID>` с
+  явным `DATABASE_URL`. Команды подбора и проверки навыка уже используют
+  общий guard. Завершение встречи теперь использует тот же guard.
+- **D6:** применить `0012_operator_access_audit.sql` при обновлении
+  окружения и использовать инструкцию `apps/web/README.md`. Код проверен
+  через upgrade с 0011, 35 целевых тестов и запуск CLI на временной PostgreSQL.
+  [CI PR №28](https://github.com/Arsench1kk/SkillSwap/actions/runs/45685545650).
 
 ## Совместная проверка и общие ограничения
 

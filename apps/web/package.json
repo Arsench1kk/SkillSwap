@@ -17,6 +17,7 @@
     "db:expire-feedback": "tsx src/db/expire-feedback.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "i18n:report": "tsx src/i18n/report-coverage.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:test:prepare": "tsx testing/prepare-database.ts",

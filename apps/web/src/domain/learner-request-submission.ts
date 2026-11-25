@@ -1,13 +1,6 @@
-import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "@/db/schema";
 import { db } from "@/db/client";
-import {
-  accountParticipants,
-  learnerRequests,
-  participantContacts,
-  participants,
-} from "@/db/schema";
+import { learnerRequests, participantContacts } from "@/db/schema";
+import { ensureAccountParticipant } from "@/domain/account-participants";
 import { createParticipant } from "@/domain/participants";
 import { recordEvent } from "@/domain/events";
 import { createPrivateLink } from "@/domain/private-links";
@@ -31,71 +24,6 @@ export {
   validDateOnly,
   type LearnerRequestInput,
 } from "@/domain/learner-request-submission-rules";
-
-type Transaction = Parameters<
-  Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
->[0];
-
-async function findOrCreateLearnerParticipant(
-  transaction: Transaction,
-  authUserId: string,
-  now: Date,
-) {
-  const [linked] = await transaction
-    .select({
-      participantId: accountParticipants.participantId,
-      status: participants.status,
-    })
-    .from(accountParticipants)
-    .innerJoin(
-      participants,
-      eq(participants.participantId, accountParticipants.participantId),
-    )
-    .where(
-      and(
-        eq(accountParticipants.authUserId, authUserId),
-        eq(accountParticipants.role, "learner"),
-      ),
-    )
-    .limit(1);
-
-  if (linked) {
-    if (linked.status !== "active") throw new Error("participant_withdrawn");
-    return linked.participantId;
-  }
-
-  const participant = await createParticipant(transaction, {
-    role: "learner",
-    consentGivenAt: now,
-  });
-  const [createdLink] = await transaction
-    .insert(accountParticipants)
-    .values({
-      authUserId,
-      role: "learner",
-      participantId: participant.participantId,
-    })
-    .onConflictDoNothing()
-    .returning({ participantId: accountParticipants.participantId });
-
-  if (createdLink) return createdLink.participantId;
-
-  await transaction
-    .delete(participants)
-    .where(eq(participants.participantId, participant.participantId));
-  const [existingLink] = await transaction
-    .select({ participantId: accountParticipants.participantId })
-    .from(accountParticipants)
-    .where(
-      and(
-        eq(accountParticipants.authUserId, authUserId),
-        eq(accountParticipants.role, "learner"),
-      ),
-    )
-    .limit(1);
-  if (!existingLink) throw new Error("participant_link_unavailable");
-  return existingLink.participantId;
-}
 
 export async function submitLearnerRequest(
   input: LearnerRequestInput,
@@ -134,13 +62,11 @@ export async function submitLearnerRequest(
 
   return db.transaction(async (tx) => {
     const learner = options.authUserId
-      ? {
-          participantId: await findOrCreateLearnerParticipant(
-            tx,
-            options.authUserId,
-            now,
-          ),
-        }
+      ? await ensureAccountParticipant(tx, {
+          authUserId: options.authUserId,
+          role: "learner",
+          consentGivenAt: now,
+        })
       : await createParticipant(tx, { role: "learner", consentGivenAt: now });
 
     await tx.insert(participantContacts).values({

@@ -85,6 +85,29 @@ The rehearsal seed contains only synthetic rows and sets `data_origin = rehearsa
 
 Schedule `npm run db:expire-feedback` as a recurring server-side job so unanswered L5 fields are marked `no_reply` after the two-hour rating window. The deployment cadence is a team decision; opening the private rating link does not run expiry processing.
 
+## Operator access
+
+On the trusted operator workstation, run the administrative CLI from
+`apps/web`. Set `SKILLSWAP_OPERATOR_ADMIN_DATABASE_URL` to the target database
+owner's connection and set `SKILLSWAP_DATA_ORIGIN`.
+
+```sh
+npx tsx scripts/operator/manage-access.ts new-id
+npx tsx scripts/operator/manage-access.ts grant <operator-id> [admin-id]
+npx tsx scripts/operator/manage-access.ts revoke <operator-id> [admin-id]
+```
+
+Pass the same operator ID when retrying a grant or revoke. A retired ID stays
+revoked. The administrator ID refers to an existing active operator if supplied.
+Keep the database-owner connection in the administrator's environment.
+Working commands use `DATABASE_URL` and an active operator ID:
+
+```sh
+npx tsx scripts/operator/publish-session.ts <operator-id> --list
+npx tsx scripts/operator/publish-session.ts <operator-id> <session-uuid> <google-meet-url>
+npm run db:export-events -- <operator-id>
+```
+
 ## Skill proof retention
 
 The **Skill proof retention** GitHub workflow runs hourly at minute 17 when
@@ -120,7 +143,7 @@ node --import tsx scripts/operator/purge-skill-proofs.ts
 - `state_transitions` is an additional audit table because the architecture requires every transition to preserve actor/time/source/reason, but the event dictionary has no general status-transition event. Confirm whether this separate history table is the intended long-term audit model.
 - The docs name participant status, match status, and session completion state without defining their complete vocabularies. This implementation uses the enums in `src/db/schema.ts`; confirm them before real-pilot use.
 - Reason-code values are not frozen in the docs. The schema stores them as text and requires them where specified; the closed list remains a team decision.
-- Consent wording, retention for other private data, operator authentication, token lifetime, safety escalation ownership, and policy for removing/retaining data after consent withdrawal remain open before a real pilot.
+- Consent wording, retention for other private data, operator web authentication, token lifetime, safety escalation ownership, and policy for removing/retaining data after consent withdrawal remain open before a real pilot.
 - The event dictionary requires `participant_id`, `role`, and `data_origin`, but system follow-ups may have no human actor. Event rows still require the participant they concern; state-transition records allow a system actor without a participant ID.
 - `feedback.one_line_outcome` is user-authored free text. The docs do not specify whether contact-data screening or retention/deletion rules apply to it; it is deliberately not copied into events.
 - `reports.details` is optional user-authored text stored separately from events. The approved pilot category set is temporary; define access, retention, and safety escalation before real use.

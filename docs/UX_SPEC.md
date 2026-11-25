@@ -381,6 +381,15 @@ Reachable from every token page. Choose a category, free text optional, submit. 
 
 Plain-language page: what is collected, who sees it, when contact details are shared, how to withdraw. The legal wording is **not** drafted here and needs review before real pilot use.
 
+### P10 Operator access (approved 2026-11-26)
+
+The pilot uses a private CLI on a trusted workstation. Arsen or a designated
+administrator grants and revokes individual operator IDs with the target
+database owner's connection. Operators use their active operator ID for
+manual operations. The learner and mentor account roles remain separate.
+Record each grant or revocation with its timestamp and optional administrator
+participant ID.
+
 ## 7. Event mapping
 
 Event names come from `docs/DATA_DICTIONARY.md`. The front end sends events through a server endpoint; the server assigns the anonymised `participant_id`. No contact data in any event field.

@@ -9,6 +9,10 @@ import {
 } from "@/db/schema";
 import type { DatabaseExecutor } from "@/db/types";
 import { currentDataOrigin } from "@/domain/event-context";
+import {
+  operatorIdSchema,
+  requireActiveOperator,
+} from "@/domain/operator-access";
 import { recordEvent } from "@/domain/events";
 import { createPrivateLink } from "@/domain/private-links";
 import { ratingWindowClosesAt } from "@/domain/rating-page";
@@ -17,7 +21,7 @@ import { transitionLearnerRequest } from "@/domain/state-machines";
 const inputSchema = z
   .object({
     sessionId: z.uuid(),
-    operatorId: z.string().regex(/^O-[0-9a-f]{10}$/),
+    operatorId: operatorIdSchema,
     actualStart: z.date(),
     actualEnd: z.date(),
   })
@@ -36,18 +40,7 @@ export async function completeSession(
   const { sessionId, operatorId, actualStart, actualEnd } =
     inputSchema.parse(input);
   return database.transaction(async (tx) => {
-    const [operator] = await tx
-      .select({ id: participants.participantId })
-      .from(participants)
-      .where(
-        and(
-          eq(participants.participantId, operatorId),
-          eq(participants.role, "operator"),
-          eq(participants.status, "active"),
-        ),
-      )
-      .for("share");
-    if (!operator) throw new Error("Active operator required");
+    const actorId = await requireActiveOperator(tx, operatorId);
 
     const [reference] = await tx
       .select({ matchId: matches.id, requestId: matches.requestId })
@@ -110,7 +103,7 @@ export async function completeSession(
         reference.requestId,
         "completed",
         {
-          actor: { type: "operator", participantId: operator.id },
+          actor: { type: "operator", participantId: actorId },
           source: "operator_cli",
           reasonCode: "session_completed",
         },
@@ -128,7 +121,7 @@ export async function completeSession(
         tx,
         {
           participantId: request.learner,
-          actorParticipantId: operator.id,
+          actorParticipantId: actorId,
           dataOrigin: currentDataOrigin(),
           templateVersion: session.templateVersion,
         },

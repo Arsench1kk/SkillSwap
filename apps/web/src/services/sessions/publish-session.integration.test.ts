@@ -10,7 +10,10 @@ import {
   mentorProfiles,
   sessions,
 } from "@/db/schema";
-import { createParticipant } from "@/domain/participants";
+import {
+  createParticipant,
+  withdrawParticipantConsent,
+} from "@/domain/participants";
 import { createPrivateLink, verifyPrivateLink } from "@/domain/private-links";
 import { getRatingPage } from "@/domain/rating-page";
 import { getReportParticipant } from "@/domain/report-page";
@@ -79,6 +82,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
     it("issues two private links for the selected meeting and retains unambiguous legacy access", async () => {
       const { learner, mentor, schedule } = await pair();
+      const operator = await createParticipant(db, { role: "operator" });
       const first = await schedule(
         "Review the first draft",
         new Date(Date.now() + hour),
@@ -97,7 +101,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
         "Review the second draft",
         new Date(Date.now() + 2 * hour),
       );
-      const links = await publishSession(db, { sessionId: other.id, meetUrl });
+      const links = await publishSession(db, {
+        sessionId: other.id,
+        operatorId: operator.participantId,
+        meetUrl,
+      });
       expect(links.learner.token).not.toBe(links.mentor.token);
       expect(links.expiresAt.getTime()).toBe(
         other.startsAt!.getTime() + 24 * hour,
@@ -139,14 +147,50 @@ describe.skipIf(!process.env.DATABASE_URL)(
       await expect(getReportParticipant(mismatched.token)).resolves.toBeNull();
     });
 
+    it("leaves the meeting unchanged if the operator is inactive", async () => {
+      const { schedule } = await pair();
+      const operator = await createParticipant(db, {
+        role: "operator",
+        consentGivenAt: new Date(),
+      });
+      await withdrawParticipantConsent(db, operator.participantId);
+      const meeting = await schedule(
+        "Review a chart",
+        new Date(Date.now() + hour),
+      );
+      await expect(
+        publishSession(db, {
+          sessionId: meeting.id,
+          operatorId: operator.participantId,
+          meetUrl,
+        }),
+      ).rejects.toThrow("Active operator required");
+      const [stored] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, meeting.id));
+      expect(stored.meetUrl).toBeNull();
+      await expect(
+        db
+          .select()
+          .from(linkTokens)
+          .where(eq(linkTokens.subjectId, meeting.id)),
+      ).resolves.toEqual([]);
+    });
+
     it("leaves no Meet URL or token if the delivery window already ended", async () => {
       const { schedule } = await pair();
+      const operator = await createParticipant(db, { role: "operator" });
       const old = await schedule(
         "Older meeting",
         new Date(Date.now() - 25 * hour),
       );
       await expect(
-        publishSession(db, { sessionId: old.id, meetUrl }),
+        publishSession(db, {
+          sessionId: old.id,
+          operatorId: operator.participantId,
+          meetUrl,
+        }),
       ).rejects.toThrow("expiry");
       const [stored] = await db
         .select()

@@ -2,6 +2,10 @@ import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import type { DatabaseExecutor } from "@/db/types";
 import { learnerRequests, matches, participants, sessions } from "@/db/schema";
+import {
+  operatorIdSchema,
+  requireActiveOperator,
+} from "@/domain/operator-access";
 import { createPrivateLink } from "@/domain/private-links";
 
 export const googleMeetUrl = z
@@ -21,6 +25,7 @@ export const googleMeetUrl = z
 const publishInput = z
   .object({
     sessionId: z.uuid(),
+    operatorId: operatorIdSchema,
     meetUrl: googleMeetUrl,
   })
   .strict();
@@ -32,8 +37,9 @@ export async function publishSession(
   database: DatabaseExecutor,
   input: z.input<typeof publishInput>,
 ) {
-  const { sessionId, meetUrl } = publishInput.parse(input);
+  const { sessionId, meetUrl, operatorId } = publishInput.parse(input);
   return database.transaction(async (tx) => {
+    await requireActiveOperator(tx, operatorId);
     const [reference] = await tx
       .select({ matchId: sessions.matchId })
       .from(sessions)

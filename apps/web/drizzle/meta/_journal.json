@@ -85,6 +85,13 @@
       "when": 1795619762579,
       "tag": "0011_mentor_student_status_and_proof_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795634718246,
+      "tag": "0012_operator_access_audit",
+      "breakpoints": true
     }
   ]
 }

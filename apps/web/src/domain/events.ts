@@ -4,6 +4,8 @@ import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
 import { events, participants } from "@/db/schema";
 
+export const operatorAccessDecision = z.enum(["granted", "revoked"]);
+
 export const operatorVerificationDecision = z.enum(["verified", "rejected"]);
 
 function isVerificationDecision(
@@ -64,6 +66,22 @@ const eventInputSchema = z
           code: "custom",
           path: ["note"],
           message: "Verification events cannot contain notes",
+        });
+      }
+    }
+    if (event.eventName === "operator_access_changed") {
+      if (!operatorAccessDecision.safeParse(event.reasonCode).success) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["reasonCode"],
+          message: "Required operator access decision",
+        });
+      }
+      if (event.note != null) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["note"],
+          message: "Operator access events cannot contain notes",
         });
       }
     }
@@ -154,6 +172,13 @@ export async function recordEvent(
     (participant.role !== "mentor" || !context.actorParticipantId)
   ) {
     throw new Error("Verification requires a mentor and operator actor");
+  }
+
+  if (
+    input.eventName === "operator_access_changed" &&
+    participant.role !== "operator"
+  ) {
+    throw new Error("Operator access requires an operator subject");
   }
 
   if (context.actorParticipantId) {

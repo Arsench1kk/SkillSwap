@@ -1,0 +1,1 @@
+ALTER TYPE "public"."event_name" ADD VALUE 'operator_access_changed';

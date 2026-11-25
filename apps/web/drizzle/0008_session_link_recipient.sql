@@ -1,0 +1,2 @@
+ALTER TABLE "link_tokens" ADD COLUMN "recipient_participant_id" text;--> statement-breakpoint
+ALTER TABLE "link_tokens" ADD CONSTRAINT "link_tokens_recipient_participant_id_participants_participant_id_fk" FOREIGN KEY ("recipient_participant_id") REFERENCES "public"."participants"("participant_id") ON DELETE no action ON UPDATE no action;

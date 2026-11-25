@@ -30,18 +30,24 @@ export async function POST(request: Request) {
       ))
     )
       return Response.json({ error: "rate_limited" }, { status: 429 });
-    const page = await getSessionPage(parsed.data.token);
-    if (
-      page.state !== "ready" ||
-      !page.sessionId ||
-      !page.matchId ||
-      !page.participantId
-    )
-      return Response.json({ error: "link_unavailable" }, { status: 410 });
-    const sessionId = page.sessionId;
-    const matchId = page.matchId;
-    const participantId = page.participantId;
     const updated = await db.transaction(async (tx) => {
+      const page = await getSessionPage(parsed.data.token, tx);
+      if (
+        page.state !== "ready" ||
+        !page.sessionId ||
+        !page.matchId ||
+        !page.participantId
+      ) {
+        return "unavailable" as const;
+      }
+      const { sessionId, matchId, participantId } = page;
+      // Keep the same lock order as the operator command.
+      const [match] = await tx
+        .select({ status: matches.status })
+        .from(matches)
+        .where(eq(matches.id, matchId))
+        .for("update");
+      if (match?.status !== "accepted") return false;
       const [session] = await tx
         .select({ completionState: sessions.completionState })
         .from(sessions)
@@ -90,6 +96,8 @@ export async function POST(request: Request) {
       }
       return true;
     });
+    if (updated === "unavailable")
+      return Response.json({ error: "link_unavailable" }, { status: 410 });
     if (!updated)
       return Response.json({ error: "state_changed" }, { status: 409 });
     return Response.json({ ok: true });

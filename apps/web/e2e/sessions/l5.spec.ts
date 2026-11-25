@@ -299,6 +299,35 @@ test.describe("D4 L4 existing actions at 360px", () => {
   }
 });
 
+test("L4 scoped link opens the meeting and keeps reporting reachable at 360px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  const f = await fixture({ completionState: "scheduled" });
+  const token = randomBytes(32).toString("base64url");
+  const meetUrl = "https://meet.google.com/test-room";
+  await pool.query("UPDATE sessions SET meet_url = $1 WHERE id = $2", [
+    meetUrl,
+    f.sessionId,
+  ]);
+  await pool.query(
+    "INSERT INTO link_tokens(token_hash,purpose,subject_type,subject_id,recipient_participant_id,expires_at) VALUES ($1,'session','session',$2,$3,now()+interval '1 day')",
+    [createHash("sha256").update(token).digest(), f.sessionId, f.learner],
+  );
+  await page.goto(`/session/${token}`);
+  const meet = page.getByRole("link", { name: messages.sessionOpenMeet });
+  await expect(meet).toHaveAttribute("href", meetUrl);
+  await meet.focus();
+  await expect(meet).toBeFocused();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(360);
+  await page.getByRole("link", { name: messages.sessionReport }).press("Enter");
+  await expect(
+    page.getByRole("heading", { name: messages.reportTitle }),
+  ).toBeVisible();
+});
+
 test.describe("D4 L4 action errors at 360px", () => {
   test.use({ viewport: { width: 360, height: 780 } });
   for (const failure of ["network", "server"] as const) {

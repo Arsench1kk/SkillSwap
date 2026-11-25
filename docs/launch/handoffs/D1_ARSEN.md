@@ -771,18 +771,22 @@
 - **D6:** `.github/workflows/skill-proof-retention.yml` запускает
   `scripts/operator/purge-skill-proofs.ts` каждый час на 17-й минуте, если
   включён пилотный режим. В GitHub создано окружение `pilot-maintenance`
-  с политикой доступа только из `main`. Для включения нужен мигрированный
-  сервер пилота и секрет окружения `SKILLSWAP_PROOF_RETENTION_DATABASE_URL`;
-  затем установить переменную репозитория
-  `SKILLSWAP_PROOF_RETENTION_ENABLED=true`. Секрет не настроен, переменная
-  не включена. Ручной `pilot` использует ту же проверку и окружение.
+  с политикой доступа только из `main`. Почасовой режим включён через
+  `SKILLSWAP_PROOF_RETENTION_ENABLED=true`. Секрет
+  `SKILLSWAP_PROOF_RETENTION_DATABASE_URL` указывает на отдельную пустую
+  базу проекта `skillswap-pilot` в Neon. Миграции 0000–0011 применены.
+  Роль очистки читает нужные поля и обновляет только
+  `skill_evidence.proof_reference`. Действующий сайт Vercel использует
+  прежнюю базу репетиции.
 - **D3/D5:** правило доступа к работе и команда удаления из D1-H024 прежние.
   В журнал GitHub пишется только число удалённых ссылок. Политика согласия,
   запуск обработки отзывов и планировщик самой площадки этим PR не меняются.
 - **Проверка:** GitHub [CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/45648711466) прошёл. Ручной
   [режим rehearsal](https://github.com/Arsench1kk/SkillSwap/actions/runs/45649332189) провёл проверку на изолированной PostgreSQL
-  и запустил ту же команду очистки. Инструкция включения и остановки находится
-  в `apps/web/README.md`.
+  и запустил ту же команду очистки. Первый
+  [запуск pilot](https://github.com/Arsench1kk/SkillSwap/actions/runs/45680258942)
+  прошёл на новой базе. Инструкция включения и остановки находится в
+  `apps/web/README.md`.
 
 ## Совместная проверка и общие ограничения
 

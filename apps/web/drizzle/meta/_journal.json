@@ -57,6 +57,13 @@
       "when": 1792753703233,
       "tag": "0007_white_doorman",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795615968473,
+      "tag": "0008_session_link_recipient",
+      "breakpoints": true
     }
   ]
 }

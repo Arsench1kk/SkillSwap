@@ -14,6 +14,10 @@ const createLinkSchema = z
     subjectType: z.enum(schema.tokenSubjectType.enumValues),
     subjectId: z.string().min(1),
     expiresAt: z.date(),
+    recipientParticipantId: z
+      .string()
+      .regex(/^[LM]-[0-9a-f]{10}$/)
+      .optional(),
   })
   .strict()
   .superRefine((input, context) => {
@@ -21,6 +25,15 @@ const createLinkSchema = z
       input.subjectType === "participant"
         ? /^[LMO]-[0-9a-f]{10}$/.test(input.subjectId)
         : z.uuid().safeParse(input.subjectId).success;
+    const scopedSession =
+      input.purpose === "session" && input.subjectType === "session";
+    if (scopedSession !== Boolean(input.recipientParticipantId)) {
+      context.addIssue({
+        code: "custom",
+        path: ["recipientParticipantId"],
+        message: "Only a scoped session link requires a recipient",
+      });
+    }
     if (!validSubject) {
       context.addIssue({
         code: "custom",
@@ -37,6 +50,7 @@ export type LinkVerification =
       purpose: Purpose;
       subjectType: SubjectType;
       subjectId: string;
+      recipientParticipantId?: string;
     }
   | { status: "expired" | "revoked" | "not_found" };
 
@@ -51,6 +65,7 @@ export async function createPrivateLink(
     subjectType: SubjectType;
     subjectId: string;
     expiresAt: Date;
+    recipientParticipantId?: string;
   },
 ): Promise<{ id: string; token: string }> {
   const input = createLinkSchema.parse(serverInput);
@@ -66,6 +81,7 @@ export async function createPrivateLink(
       subjectType: input.subjectType,
       subjectId: input.subjectId,
       expiresAt: input.expiresAt,
+      recipientParticipantId: input.recipientParticipantId,
     })
     .returning({ id: linkTokens.id });
   // Return the raw secret once to the caller; never log or persist it.
@@ -94,6 +110,9 @@ export async function verifyPrivateLink(
     purpose: row.purpose,
     subjectType: row.subjectType,
     subjectId: row.subjectId,
+    ...(row.recipientParticipantId && {
+      recipientParticipantId: row.recipientParticipantId,
+    }),
   };
 }
 

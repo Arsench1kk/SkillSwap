@@ -267,6 +267,17 @@ Rules
 
 The template is versioned (`template_version`). The structured template is the thing under test in `A6-H04` (unfamiliar pairs finish unaided). Do not add chat or video to this page.
 
+#### L4 private links (R07, approved 2026-11-25)
+
+After adding Google Meet, the operator manually sends each participant their own
+link to the specific meeting. The link expires 24 hours after the scheduled
+start. Reuse the existing expired-link screen for unavailable links.
+
+An existing participant-only session link keeps working while its current
+lookup returns exactly one eligible meeting. If the lookup is ambiguous, the
+operator issues an exact link. The report action remains available from scoped
+meeting pages. Completion, no-show and rating link delivery are separate rules.
+
 ### L5 Rating
 
 Shown within two hours of the session (A6 E3). Three inputs only:

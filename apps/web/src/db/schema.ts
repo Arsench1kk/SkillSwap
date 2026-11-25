@@ -607,6 +607,9 @@ export const linkTokens = pgTable(
     purpose: tokenPurpose("purpose").notNull(),
     subjectType: tokenSubjectType("subject_type").notNull(),
     subjectId: text("subject_id").notNull(),
+    recipientParticipantId: text("recipient_participant_id").references(
+      () => participants.participantId,
+    ),
     expiresAt: timestamp("expires_at", {
       withTimezone: true,
       mode: "date",

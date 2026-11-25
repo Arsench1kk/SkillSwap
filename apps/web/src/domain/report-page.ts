@@ -7,10 +7,14 @@ import {
   participants,
 } from "@/db/schema";
 import { verifyPrivateLink } from "@/domain/private-links";
+import { resolveSessionLink } from "@/domain/session-page";
 
 export async function getReportParticipant(token: string) {
   const link = await verifyPrivateLink(db, token);
   if (link.status !== "valid") return null;
+  if (link.subjectType === "session" && link.purpose === "session") {
+    return (await resolveSessionLink(link, db))?.participant ?? null;
+  }
   if (link.subjectType === "participant") {
     const [person] = await db
       .select({

@@ -15,6 +15,19 @@ export function SessionActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [cancelled, setCancelled] = useState(state === "cancelled");
+  async function start() {
+    setError("");
+    try {
+      const response = await fetch("/api/session/action", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, action: "start" }),
+      });
+      if (!response.ok) throw new Error("action_failed");
+    } catch {
+      setError(messages.sessionActionError);
+    }
+  }
   async function cancel() {
     setBusy(true);
     setError("");
@@ -46,13 +59,7 @@ export function SessionActions({
           href={meetUrl}
           target="_blank"
           rel="noreferrer"
-          onClick={() =>
-            void fetch("/api/session/action", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ token, action: "start" }),
-            })
-          }
+          onClick={() => void start()}
         >
           {messages.sessionOpenMeet}
         </a>

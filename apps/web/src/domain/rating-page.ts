@@ -3,8 +3,16 @@ import { db } from "@/db/client";
 import { feedback, sessions } from "@/db/schema";
 import { verifyPrivateLink } from "@/domain/private-links";
 
-export function isRatingWindowOpen(endsAt: Date | null, now = new Date()) {
-  return !endsAt || now.getTime() <= endsAt.getTime() + 2 * 60 * 60 * 1000;
+type RatingSession = {
+  endsAt: Date | null;
+  completionState: typeof sessions.$inferSelect.completionState;
+};
+
+export function isRatingWindowOpen(session: RatingSession, now = new Date()) {
+  if (session.completionState !== "completed" || !session.endsAt) return false;
+  const end = session.endsAt.getTime();
+  const current = now.getTime();
+  return current >= end && current <= end + 2 * 60 * 60 * 1000;
 }
 
 type RatingValues = {
@@ -47,13 +55,20 @@ export async function getRatingPage(token: string) {
       trust: feedback.trust,
       templateVersion: sessions.templateVersion,
       endsAt: sessions.endsAt,
+      completionState: sessions.completionState,
     })
     .from(feedback)
     .innerJoin(sessions, eq(sessions.id, feedback.sessionId))
     .where(eq(feedback.id, link.subjectId))
     .limit(1);
   if (!row) return { state: "expired" as const };
-  const windowOpen = isRatingWindowOpen(row.endsAt);
+  if (
+    row.completionState !== "completed" ||
+    !row.endsAt ||
+    row.endsAt.getTime() > Date.now()
+  )
+    return { state: "expired" as const };
+  const windowOpen = isRatingWindowOpen(row);
   const state = classifyRatingState(row, windowOpen);
   if (state === "submitted") return { state };
   return { state, ...row };

@@ -1,6 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { expireUnansweredFeedback } from "../src/domain/expire-feedback";
 import { createFixturePool } from "./support/database";
 
 const pool = createFixturePool();
@@ -13,6 +12,7 @@ type FixtureOptions = {
   withFeedback?: boolean;
   feedbackSubmitted?: boolean;
   feedbackPartial?: boolean;
+  feedbackMissingReason?: "incomplete" | "no_reply";
   ratingExpired?: boolean;
 };
 
@@ -171,6 +171,7 @@ async function createFixture(options: FixtureOptions = {}) {
     if (options.withFeedback) {
       const feedbackId = randomUUID();
       feedbackIdForTest = feedbackId;
+      const missingReason = options.feedbackMissingReason ?? "incomplete";
       if (options.feedbackSubmitted) {
         await pool.query(
           `INSERT INTO feedback
@@ -183,16 +184,16 @@ async function createFixture(options: FixtureOptions = {}) {
           `INSERT INTO feedback
            (id, session_id, participant_id, unblocked, unblocked_missing_reason,
             outcome_missing_reason, trust_missing_reason, safety_missing_reason)
-           VALUES ($1, $2, $3, 4, NULL, 'incomplete', 'incomplete', 'incomplete')`,
-          [feedbackId, sessionId, learnerId],
+           VALUES ($1, $2, $3, 4, NULL, $4, $4, 'incomplete')`,
+          [feedbackId, sessionId, learnerId, missingReason],
         );
       } else {
         await pool.query(
           `INSERT INTO feedback
            (id, session_id, participant_id, unblocked_missing_reason, outcome_missing_reason,
             trust_missing_reason, safety_missing_reason)
-           VALUES ($1, $2, $3, 'incomplete', 'incomplete', 'incomplete', 'incomplete')`,
-          [feedbackId, sessionId, learnerId],
+           VALUES ($1, $2, $3, $4, $4, $4, 'incomplete')`,
+          [feedbackId, sessionId, learnerId, missingReason],
         );
       }
       ratingToken = await createToken(
@@ -464,7 +465,7 @@ test.describe("participant token routes at phone width", () => {
     });
   });
 
-  test("L5 stores unanswered feedback as no_reply after the two-hour window", async ({
+  test("L5 shows the closed window for feedback already marked no_reply", async ({
     page,
   }) => {
     const fixture = await createFixture({
@@ -472,8 +473,8 @@ test.describe("participant token routes at phone width", () => {
       matchStatus: "accepted",
       withFeedback: true,
       ratingExpired: true,
+      feedbackMissingReason: "no_reply",
     });
-    await expireUnansweredFeedback(pool);
     await page.goto(`/rate/${fixture.ratingToken}`);
     await expect(
       page.getByRole("heading", { name: "This feedback window has ended" }),
@@ -499,8 +500,8 @@ test.describe("participant token routes at phone width", () => {
       withFeedback: true,
       feedbackPartial: true,
       ratingExpired: true,
+      feedbackMissingReason: "no_reply",
     });
-    await expireUnansweredFeedback(pool);
     await page.goto(`/rate/${fixture.ratingToken}`);
     await expect(
       page.getByText("The feedback window closed. Your saved answers remain"),

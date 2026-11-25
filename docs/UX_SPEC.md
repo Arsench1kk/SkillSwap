@@ -306,7 +306,16 @@ still be marked completed and the command does not issue a rating link.
 
 ### M1 Mentor join
 
-Fields: name or initials, skill categories and specific topics, proof (link or file reference, only what is needed), availability windows (Kazakhstan time), preferred contact, consent. Must state clearly what is shown to learners and when. Proof handling details are an open question.
+Fields: name or initials, skill categories and specific topics, proof (link or file reference, only what is needed), availability windows (Kazakhstan time), preferred contact, consent. Must state clearly what is shown to learners and when. Proof retention and student status verification are open questions.
+
+#### M1 skill verification from the operator CLI (approved 2026-11-25)
+
+An active operator reviews the submitted project link or file reference from a
+private terminal. Mark the pending skill verified if the work demonstrates the
+stated skill and belongs to the mentor. Otherwise mark it rejected. Only
+verified skills appear in manual matching. The proof reference stays private to
+the operator. Record the decision with the time and operator ID, without copying
+the proof or personal details to the event.
 
 ### M2 Mentor brief (highest-risk screen)
 

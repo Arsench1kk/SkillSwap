@@ -837,8 +837,10 @@
   Экспорт запускать как `npm run db:export-events -- <operator ID>` с
   явным `DATABASE_URL`. Команды подбора и проверки навыка уже используют
   общий guard. Завершение встречи теперь использует тот же guard.
-- **D6:** применить `0012_operator_access_audit.sql` при обновлении
-  окружения и использовать инструкцию `apps/web/README.md`. Код проверен
+- **D6:** Арсен применил `0012_operator_access_audit.sql` в отдельной БД
+  `skillswap-pilot` 26 ноября 2026. В базе проверены все 13 записей журнала
+  миграций и наличие `operator_access_changed` в типе `event_name`.
+  Для других окружений использовать `apps/web/README.md`. Код проверен
   через upgrade с 0011, 35 целевых тестов и запуск CLI на временной PostgreSQL.
   [CI PR №28](https://github.com/Arsench1kk/SkillSwap/actions/runs/45685545650).
 

@@ -1,4 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "../../src/db/schema";
+import { completeSession } from "../../src/services/sessions/complete-session";
 import { expect, test } from "@playwright/test";
 import { messages } from "../../messages/en";
 
@@ -82,6 +85,35 @@ async function row(id: string) {
 
 test.describe("D4 L5 at 360px", () => {
   test.use({ viewport: { width: 360, height: 780 } });
+
+  test("submits an answer through the link issued on operator completion", async ({
+    page,
+  }) => {
+    const f = await fixture({ completionState: "scheduled" });
+    const operatorId = `O-${randomBytes(5).toString("hex")}`;
+    await pool.query(
+      "INSERT INTO participants(participant_id,role) VALUES ($1,'operator')",
+      [operatorId],
+    );
+    const now = Date.now();
+    const result = await completeSession(drizzle(pool, { schema }), {
+      sessionId: f.sessionId,
+      operatorId,
+      actualStart: new Date(now - 50 * 60_000),
+      actualEnd: new Date(now - 5 * 60_000),
+    });
+    if (!result.ratingLink) throw new Error("Rating link missing");
+    await page.goto(`/rate/${result.ratingLink.token}`);
+    await page
+      .getByRole("group", { name: messages.ratingTrust })
+      .getByRole("radio", { name: "5", exact: true })
+      .check();
+    await page
+      .getByRole("button", { name: messages.ratingSubmit })
+      .press("Enter");
+    await expect(page.getByText(messages.ratingPartialText)).toBeVisible();
+    expect((await row(f.feedbackId)).trust).toBe(5);
+  });
 
   test("completes remaining ratings without resending an existing read-only outcome", async ({
     page,

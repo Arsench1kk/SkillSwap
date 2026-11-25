@@ -5,20 +5,7 @@ import { matches, sessions } from "../../src/db/schema";
 import { formatKazakhstanTime } from "../../src/domain/time";
 import { publishSession } from "../../src/services/sessions/publish-session";
 
-const baseUrlSchema = z
-  .string()
-  .url()
-  .refine((value) => {
-    if (!URL.canParse(value)) return false;
-    const url = new URL(value);
-    return (
-      !url.username &&
-      !url.password &&
-      (url.protocol === "https:" ||
-        (url.protocol === "http:" &&
-          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
-    );
-  });
+import { baseUrlSchema } from "./private-link-base";
 
 async function listMeetings() {
   const rows = await db

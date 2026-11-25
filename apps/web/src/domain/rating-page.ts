@@ -8,11 +8,17 @@ type RatingSession = {
   completionState: typeof sessions.$inferSelect.completionState;
 };
 
+export function ratingWindowClosesAt(endsAt: Date) {
+  return new Date(endsAt.getTime() + 2 * 60 * 60 * 1000);
+}
+
 export function isRatingWindowOpen(session: RatingSession, now = new Date()) {
   if (session.completionState !== "completed" || !session.endsAt) return false;
   const end = session.endsAt.getTime();
   const current = now.getTime();
-  return current >= end && current <= end + 2 * 60 * 60 * 1000;
+  return (
+    current >= end && current <= ratingWindowClosesAt(session.endsAt).getTime()
+  );
 }
 
 type RatingValues = {

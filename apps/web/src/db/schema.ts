@@ -414,6 +414,10 @@ export const sessions = pgTable(
       .notNull()
       .references(() => matches.id),
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }),
+    actualStartsAt: timestamp("actual_starts_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "date" }),
     templateVersion: text("template_version").notNull(),
     completionState: sessionCompletionState("completion_state")
@@ -428,7 +432,7 @@ export const sessions = pgTable(
     uniqueIndex("sessions_match_unique").on(table.matchId),
     check(
       "sessions_time_order",
-      sql`${table.startsAt} IS NULL OR ${table.endsAt} IS NULL OR ${table.endsAt} > ${table.startsAt}`,
+      sql`${table.endsAt} IS NULL OR coalesce(${table.actualStartsAt}, ${table.startsAt}) IS NULL OR ${table.endsAt} > coalesce(${table.actualStartsAt}, ${table.startsAt})`,
     ),
   ],
 );

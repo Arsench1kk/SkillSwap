@@ -1,0 +1,3 @@
+ALTER TABLE "sessions" DROP CONSTRAINT "sessions_time_order";--> statement-breakpoint
+ALTER TABLE "sessions" ADD COLUMN "actual_starts_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_time_order" CHECK ("sessions"."ends_at" IS NULL OR coalesce("sessions"."actual_starts_at", "sessions"."starts_at") IS NULL OR "sessions"."ends_at" > coalesce("sessions"."actual_starts_at", "sessions"."starts_at"));

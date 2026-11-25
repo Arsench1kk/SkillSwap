@@ -290,6 +290,20 @@ Plus an optional "Something was not okay" link that goes to X2.
 
 States: skipped (record as missing, never as zero), partially submitted (save any answered fields and mark unanswered fields `incomplete`; show saved answers and allow only unanswered fields to be completed), partially submitted after the window (preserve saved answers and record unanswered fields as `no_reply`), already submitted (show thank-you, no resubmit). A server-side expiry job records `no_reply` for unanswered fields after the two-hour window; opening a rating link must not itself mutate feedback.
 
+#### L5 handoff from completed meetings (R07, approved 2026-11-25)
+
+After verifying that the meeting happened, the operator enters the actual start
+and end times. The scheduled time remains available as the original plan. The
+existing `session_completed` event records the duration in whole minutes from
+these actual times. A calendar time or opening Meet does not complete a meeting.
+
+The operator copies the private rating link from the local command and sends it
+to the learner. The existing two-hour submission window is measured from actual
+completion. The link remains valid for viewing until 24 hours after actual
+completion.
+If the operator records the result after the window closes, the meeting can
+still be marked completed and the command does not issue a rating link.
+
 ### M1 Mentor join
 
 Fields: name or initials, skill categories and specific topics, proof (link or file reference, only what is needed), availability windows (Kazakhstan time), preferred contact, consent. Must state clearly what is shown to learners and when. Proof handling details are an open question.

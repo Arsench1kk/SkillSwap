@@ -1,10 +1,14 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireAccountSession } from "@/lib/account-session";
 import { db } from "@/db/client";
-import { accountParticipants, learnerRequests } from "@/db/schema";
+import { learnerRequests } from "@/db/schema";
+import {
+  AccountAccessError,
+  findAccountParticipant,
+} from "@/domain/account-participants";
 import { allowRateLimitedAttempt } from "@/domain/rate-limit";
 import {
   contactIsValid,
@@ -12,74 +16,79 @@ import {
   submitLearnerRequest,
 } from "@/domain/learner-request-submission";
 
-async function getLearnerSession() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "unauthorized" as const };
-  if (session.user.activeRole !== "learner")
-    return { error: "learner_role_required" as const };
-  return { userId: session.user.id };
+function accountRequestAccessError(error: unknown) {
+  if (!(error instanceof AccountAccessError)) return null;
+  switch (error.code) {
+    case "unauthorized":
+      return NextResponse.json({ error: error.code }, { status: 401 });
+    case "active_role_required":
+    case "invalid_account_role":
+      return NextResponse.json(
+        { error: "learner_role_required" },
+        { status: 403 },
+      );
+    case "participant_withdrawn":
+      return NextResponse.json({ error: error.code }, { status: 403 });
+    default:
+      return null;
+  }
 }
 
 export async function GET() {
   try {
-    const session = await getLearnerSession();
-    if ("error" in session) {
-      return NextResponse.json(
-        { error: session.error },
-        { status: session.error === "unauthorized" ? 401 : 403 },
-      );
-    }
+    const { authUserId } = await requireAccountSession(
+      await headers(),
+      "learner",
+    );
+    const requests = await db.transaction(
+      async (tx) => {
+        const participant = await findAccountParticipant(tx, {
+          authUserId,
+          role: "learner",
+        });
+        if (!participant) return [];
 
-    const [participant] = await db
-      .select({ participantId: accountParticipants.participantId })
-      .from(accountParticipants)
-      .where(
-        and(
-          eq(accountParticipants.authUserId, session.userId),
-          eq(accountParticipants.role, "learner"),
-        ),
-      )
-      .limit(1);
-    if (!participant)
-      return NextResponse.json({ requests: [] }, { status: 200 });
+        return tx
+          .select({
+            id: learnerRequests.id,
+            taskDescription: learnerRequests.taskDescription,
+            taskCategory: learnerRequests.taskCategory,
+            status: learnerRequests.status,
+            deadlineAt: learnerRequests.deadlineAt,
+            createdAt: learnerRequests.createdAt,
+          })
+          .from(learnerRequests)
+          .where(eq(learnerRequests.participantId, participant.participantId))
+          .orderBy(desc(learnerRequests.createdAt));
+      },
+      // The access check and list read must agree on the participant's state.
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
 
-    const requests = await db
-      .select({
-        id: learnerRequests.id,
-        taskDescription: learnerRequests.taskDescription,
-        taskCategory: learnerRequests.taskCategory,
-        status: learnerRequests.status,
-        deadlineAt: learnerRequests.deadlineAt,
-        createdAt: learnerRequests.createdAt,
-      })
-      .from(learnerRequests)
-      .where(eq(learnerRequests.participantId, participant.participantId))
-      .orderBy(desc(learnerRequests.createdAt));
-
-    return NextResponse.json({ requests }, { status: 200 });
-  } catch {
     return NextResponse.json(
-      { error: "requests_unavailable" },
-      { status: 503 },
+      { requests },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return (
+      accountRequestAccessError(error) ??
+      NextResponse.json({ error: "requests_unavailable" }, { status: 503 })
     );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getLearnerSession();
-    if ("error" in session) {
-      return NextResponse.json(
-        { error: session.error },
-        { status: session.error === "unauthorized" ? 401 : 403 },
-      );
-    }
+    const { authUserId } = await requireAccountSession(
+      await headers(),
+      "learner",
+    );
 
     if (
       !(await allowRateLimitedAttempt(
         db,
         "learner-request-account",
-        session.userId,
+        authUserId,
         10,
       ))
     ) {
@@ -95,7 +104,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "invalid_contact" }, { status: 400 });
 
     const result = await submitLearnerRequest(parsed.data, {
-      authUserId: session.userId,
+      authUserId,
     });
     if (result.status === "ineligible")
       return NextResponse.json(
@@ -112,6 +121,8 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
+    const denied = accountRequestAccessError(error);
+    if (denied) return denied;
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }

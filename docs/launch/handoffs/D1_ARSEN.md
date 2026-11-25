@@ -759,6 +759,31 @@
   Пройдены 15 целевых тестов на временной PostgreSQL 16, upgrade с 0010
   и запуск команд на синтетических данных. [CI PR №25](https://github.com/Arsench1kk/SkillSwap/actions/runs/45643697143).
 
+<a id="d1-h025"></a>
+
+## D1-H025 — расписание очистки ссылок на работы наставников
+
+- **Автор:** D1 / Арсен, работа в D6. **Адресаты:** D3, D5, D6.
+  [PR №26](https://github.com/Arsench1kk/SkillSwap/pull/26), main
+  `95e063fd1177239e69c28c4391de1406779b911f`, head `e38b4b4e2768eb42ae53b513af543e32e1b62952`, base
+  `ddc647311a751a15dc1254efe6056f4f0ca8daba`. Использует существующий CLI
+  из D1-H024 и миграцию 0011.
+- **D6:** `.github/workflows/skill-proof-retention.yml` запускает
+  `scripts/operator/purge-skill-proofs.ts` каждый час на 17-й минуте, если
+  включён пилотный режим. В GitHub создано окружение `pilot-maintenance`
+  с политикой доступа только из `main`. Для включения нужен мигрированный
+  сервер пилота и секрет окружения `SKILLSWAP_PROOF_RETENTION_DATABASE_URL`;
+  затем установить переменную репозитория
+  `SKILLSWAP_PROOF_RETENTION_ENABLED=true`. Секрет не настроен, переменная
+  не включена. Ручной `pilot` использует ту же проверку и окружение.
+- **D3/D5:** правило доступа к работе и команда удаления из D1-H024 прежние.
+  В журнал GitHub пишется только число удалённых ссылок. Политика согласия,
+  запуск обработки отзывов и планировщик самой площадки этим PR не меняются.
+- **Проверка:** GitHub [CI](https://github.com/Arsench1kk/SkillSwap/actions/runs/45648711466) прошёл. Ручной
+  [режим rehearsal](https://github.com/Arsench1kk/SkillSwap/actions/runs/45649332189) провёл проверку на изолированной PostgreSQL
+  и запустил ту же команду очистки. Инструкция включения и остановки находится
+  в `apps/web/README.md`.
+
 ## Совместная проверка и общие ограничения
 
 Четыре блока объединены только в локальной ветке `codex/arsen-integration-check`:

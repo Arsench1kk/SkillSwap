@@ -1,0 +1,87 @@
+name: Skill proof retention
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Database to use
+        type: choice
+        options:
+          - rehearsal
+          - pilot
+        default: rehearsal
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: apps/web
+
+jobs:
+  rehearsal:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'rehearsal' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEST_DATABASE_URL: postgres://skillswap:skillswap@localhost:5432/skillswap_test
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: skillswap
+          POSTGRES_PASSWORD: skillswap
+          POSTGRES_DB: skillswap_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U skillswap -d skillswap_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run db:test:prepare
+      - name: Check proof retention on synthetic records
+        run: npm test -- src/domain/skill-proof-retention.integration.test.ts
+      - name: Run the scheduled command
+        run: node --import tsx scripts/operator/purge-skill-proofs.ts
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+  pilot:
+    if: >-
+      ${{ github.ref == 'refs/heads/main'
+        && vars.SKILLSWAP_PROOF_RETENTION_ENABLED == 'true'
+        && (github.event_name == 'schedule' || inputs.target == 'pilot') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pilot-maintenance
+    concurrency:
+      group: skill-proof-retention-pilot
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Remove expired skill proof references
+        run: node --import tsx scripts/operator/purge-skill-proofs.ts
+        env:
+          DATABASE_URL: ${{ secrets.SKILLSWAP_PROOF_RETENTION_DATABASE_URL }}

@@ -337,6 +337,15 @@ States:
 - Learner cancelled (clear message, thank the mentor).
 - Brief expired.
 
+#### M2 first invitation from the operator CLI (approved 2026-11-25)
+
+An active operator selects one verified skill in the eligible request's category
+and manually sends the private brief link to that mentor. The response deadline
+and link expiry are the earlier of 48 hours after issue and the request deadline.
+The request remains in matching until the mentor proposes a valid time. Use the
+existing structured brief and existing L2/L3 states. Subsequent assignment after
+a decline or expiry follows the separate rematching rules.
+
 ### M3 Mentor confirmation
 
 What was sent, what happens next, who to contact, and how to withdraw. No upsell, no gamification.

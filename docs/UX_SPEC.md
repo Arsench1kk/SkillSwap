@@ -306,7 +306,7 @@ still be marked completed and the command does not issue a rating link.
 
 ### M1 Mentor join
 
-Fields: name or initials, skill categories and specific topics, proof (link or file reference, only what is needed), availability windows (Kazakhstan time), preferred contact, consent. Must state clearly what is shown to learners and when. Proof retention and student status verification are open questions.
+Fields: name or initials, skill categories and specific topics, proof (link or file reference, only what is needed), availability windows (Kazakhstan time), preferred contact, consent. Must state clearly what is shown to learners and when.
 
 #### M1 skill verification from the operator CLI (approved 2026-11-25)
 
@@ -316,6 +316,16 @@ stated skill and belongs to the mentor. Otherwise mark it rejected. Only
 verified skills appear in manual matching. The proof reference stays private to
 the operator. Record the decision with the time and operator ID, without copying
 the proof or personal details to the event.
+
+#### Student status and evidence retention (R04 and R05, approved 2026-11-25)
+
+The operator checks a current student card or enrollment confirmation without
+uploading or copying it. Store only the result, decision time, and operator ID.
+Real-pilot matching requires both confirmed student status and a verified skill.
+
+Remove the submitted project link or file reference from SkillSwap after 30
+days from submission, or immediately when consent is withdrawn. Keep the skill
+decision and event. A pending skill needs fresh proof once its reference expires.
 
 ### M2 Mentor brief (highest-risk screen)
 

@@ -31,6 +31,13 @@ async function main() {
     return;
   }
   if (command === "skills" && args.length === 1) {
+    if (
+      !z
+        .enum(dataOrigin.enumValues)
+        .safeParse(process.env.SKILLSWAP_DATA_ORIGIN).success
+    ) {
+      throw new Error("Set SKILLSWAP_DATA_ORIGIN for this environment.");
+    }
     console.log(
       JSON.stringify(
         await listVerifiedSkills(db, operatorId, args[0]),
@@ -71,7 +78,7 @@ main()
       error instanceof z.ZodError
         ? "Check the IDs and enter a short reason without contacts."
         : error instanceof Error &&
-            /^(Usage:|Run from|Set NEXT_PUBLIC_APP_URL|Active operator required|Request unavailable|Request already has|Verified mentor skill unavailable)/.test(
+            /^(Usage:|Run from|Set NEXT_PUBLIC_APP_URL|Set SKILLSWAP_DATA_ORIGIN|Active operator required|Request unavailable|Request already has|Verified mentor skill unavailable)/.test(
               error.message,
             )
           ? error.message

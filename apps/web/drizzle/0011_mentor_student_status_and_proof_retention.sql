@@ -1,0 +1,7 @@
+ALTER TYPE "public"."event_name" ADD VALUE 'mentor_student_status_decided';--> statement-breakpoint
+ALTER TABLE "skill_evidence" ALTER COLUMN "proof_reference" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "mentor_profiles" ADD COLUMN "student_status_verified" boolean;--> statement-breakpoint
+ALTER TABLE "mentor_profiles" ADD COLUMN "student_status_checked_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "mentor_profiles" ADD COLUMN "student_status_checked_by" text;--> statement-breakpoint
+ALTER TABLE "mentor_profiles" ADD CONSTRAINT "mentor_profiles_student_status_checked_by_participants_participant_id_fk" FOREIGN KEY ("student_status_checked_by") REFERENCES "public"."participants"("participant_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "mentor_profiles" ADD CONSTRAINT "mentor_profiles_student_status_check" CHECK (("mentor_profiles"."student_status_verified" IS NULL AND "mentor_profiles"."student_status_checked_at" IS NULL AND "mentor_profiles"."student_status_checked_by" IS NULL) OR ("mentor_profiles"."student_status_verified" IS NOT NULL AND "mentor_profiles"."student_status_checked_at" IS NOT NULL AND "mentor_profiles"."student_status_checked_by" IS NOT NULL));

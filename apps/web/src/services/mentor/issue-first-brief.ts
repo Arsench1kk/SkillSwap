@@ -5,12 +5,14 @@ import {
   learnerRequests,
   matches,
   mentorBriefs,
+  mentorProfiles,
   participants,
   skillEvidence,
 } from "@/db/schema";
 import type { DatabaseExecutor } from "@/db/types";
 import { currentDataOrigin } from "@/domain/event-context";
 import { containsContactData, recordEvent } from "@/domain/events";
+import { studentStatusForMatching } from "@/domain/mentor-student-status";
 import {
   operatorIdSchema,
   requireActiveOperator,
@@ -96,12 +98,17 @@ export async function issueFirstBrief(
     if (prior) throw new Error("Request already has a match or invitation");
 
     const mentor = alias(participants, "mentor");
+    const dataOrigin = currentDataOrigin();
     const [skill] = await tx
       .select({ id: skillEvidence.mentorParticipantId })
       .from(skillEvidence)
       .innerJoin(
         mentor,
         eq(mentor.participantId, skillEvidence.mentorParticipantId),
+      )
+      .innerJoin(
+        mentorProfiles,
+        eq(mentorProfiles.participantId, mentor.participantId),
       )
       .where(
         and(
@@ -110,6 +117,7 @@ export async function issueFirstBrief(
           eq(skillEvidence.verificationState, "verified"),
           eq(mentor.role, "mentor"),
           eq(mentor.status, "active"),
+          studentStatusForMatching(dataOrigin),
         ),
       )
       .for("share");
@@ -160,7 +168,7 @@ export async function issueFirstBrief(
         participantId: skill.id,
         actorParticipantId: actorId,
         templateVersion: BRIEF_TEMPLATE_VERSION,
-        dataOrigin: currentDataOrigin(),
+        dataOrigin,
       },
       {
         eventName: "brief_sent",

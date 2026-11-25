@@ -3,14 +3,16 @@ import { z } from "zod";
 import { participants, skillEvidence } from "@/db/schema";
 import type { DatabaseExecutor } from "@/db/types";
 import { currentDataOrigin } from "./event-context";
-import { recordEvent, skillVerificationDecision } from "./events";
+import { recordEvent, operatorVerificationDecision } from "./events";
 import { operatorIdSchema, requireActiveOperator } from "./operator-access";
+
+import { readableSkillProof } from "./skill-proof-retention";
 
 const verificationSchema = z
   .object({
     skillEvidenceId: z.uuid(),
     operatorParticipantId: operatorIdSchema,
-    state: skillVerificationDecision,
+    state: operatorVerificationDecision,
   })
   .strict();
 
@@ -51,6 +53,7 @@ export async function setSkillVerification(
         and(
           eq(skillEvidence.id, skillEvidenceId),
           eq(skillEvidence.verificationState, "pending"),
+          readableSkillProof(at),
         ),
       )
       .returning({

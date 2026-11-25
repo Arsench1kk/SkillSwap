@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/db/schema";
-import { participants } from "@/db/schema";
+import { participants, skillEvidence } from "@/db/schema";
 
 export type ParticipantRole =
   (typeof schema.participantRole.enumValues)[number];
@@ -50,10 +50,18 @@ export async function withdrawParticipantConsent(
   participantId: string,
   withdrawnAt = new Date(),
 ) {
-  const [updated] = await database
-    .update(participants)
-    .set({ consentWithdrawnAt: withdrawnAt, status: "withdrawn" })
-    .where(eq(participants.participantId, participantId))
-    .returning();
-  return updated ?? null;
+  return database.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(participants)
+      .set({ consentWithdrawnAt: withdrawnAt, status: "withdrawn" })
+      .where(eq(participants.participantId, participantId))
+      .returning();
+    if (updated?.role === "mentor") {
+      await tx
+        .update(skillEvidence)
+        .set({ proofReference: null })
+        .where(eq(skillEvidence.mentorParticipantId, participantId));
+    }
+    return updated ?? null;
+  });
 }

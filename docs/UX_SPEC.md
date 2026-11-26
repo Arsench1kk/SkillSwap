@@ -213,6 +213,14 @@ What to expect
 
 States: mentor changed time, learner declines time, mentor withdrew. Each needs its own copy and a path back to waiting. Contact details are revealed only after the learner confirms and the mentor has accepted.
 
+#### Learner contact per request (R08, approved 26 November 2026)
+
+Keep the learner's submitted phone or Telegram in the private contact table,
+linked to the request. A later request keeps its own contact. On the confirmed
+L3 screen, show the contact for that request. For an older request, show the
+learner's contact only when the unlinked records contain one distinct option.
+Omit an ambiguous contact until the operator can clarify it.
+
 ### L3 → L4 creation rule (approved 2026-11-19)
 
 Arsen approved automatic session creation when the learner confirms the mentor's

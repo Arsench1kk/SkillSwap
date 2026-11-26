@@ -7,8 +7,12 @@ import {
   authUsers,
   events,
   learnerRequests,
+  matches,
+  mentorProfiles,
   participantContacts,
 } from "@/db/schema";
+import { getLearnerStatusPage } from "./learner-status";
+import { createParticipant } from "./participants";
 import { verifyPrivateLink } from "./private-links";
 import {
   submitLearnerRequest,
@@ -57,6 +61,38 @@ async function requestRow(requestId: string) {
     .from(learnerRequests)
     .where(eq(learnerRequests.id, requestId));
   return row;
+}
+
+async function proposeMatch(requestId: string) {
+  const mentor = await createParticipant(db, { role: "mentor" });
+  await db
+    .insert(mentorProfiles)
+    .values({ participantId: mentor.participantId });
+  await db
+    .update(learnerRequests)
+    .set({ status: "matched" })
+    .where(eq(learnerRequests.id, requestId));
+  const [match] = await db
+    .insert(matches)
+    .values({
+      requestId,
+      mentorParticipantId: mentor.participantId,
+      humanDecision: "accepted",
+      status: "proposed",
+      mentorAcceptedAt: new Date(),
+      proposedSlotAt: new Date(Date.now() + DAY),
+    })
+    .returning({ id: matches.id });
+  return async () => {
+    await db
+      .update(matches)
+      .set({ status: "accepted", learnerAcceptedAt: new Date() })
+      .where(eq(matches.id, match.id));
+    await db
+      .update(learnerRequests)
+      .set({ status: "session_scheduled" })
+      .where(eq(learnerRequests.id, requestId));
+  };
 }
 
 describe.skipIf(!databaseAvailable)("submitLearnerRequest", () => {
@@ -208,9 +244,86 @@ describe.skipIf(!databaseAvailable)("submitLearnerRequest", () => {
     expect(links).toHaveLength(1);
   });
 
-  // A06 is blocked on decision R08 (is the contact the account's current value
-  // or a snapshot per request?) and on a D1 schema change. Not implemented here.
-  it.todo(
-    "A06: after two requests with different contacts, each request shows the contact it was submitted with (blocked: R08 + D1 model)",
-  );
+  it("shows the submitted contact for each confirmed request from the same account", async () => {
+    const userId = randomUUID();
+    await db.insert(authUsers).values({
+      id: userId,
+      name: "Synthetic learner",
+      email: `${userId}@example.test`,
+    });
+    const firstInput = input();
+    const secondInput = input({
+      contactType: "phone",
+      contact: "+77000000000",
+    });
+    const first = await submitLearnerRequest(firstInput, {
+      authUserId: userId,
+    });
+    const second = await submitLearnerRequest(secondInput, {
+      authUserId: userId,
+    });
+    if (first.status !== "eligible" || second.status !== "eligible") {
+      throw new Error("expected eligible requests");
+    }
+    const owner = await requestRow(first.requestId);
+    const [stored] = await db
+      .select()
+      .from(participantContacts)
+      .where(eq(participantContacts.learnerRequestId, first.requestId));
+    expect(stored).toMatchObject({
+      participantId: owner.participantId,
+      value: firstInput.contact,
+    });
+    const confirmFirst = await proposeMatch(first.requestId);
+    const confirmSecond = await proposeMatch(second.requestId);
+    expect((await getLearnerStatusPage(first.token)).contacts).toBeUndefined();
+    await confirmFirst();
+    await confirmSecond();
+
+    expect((await getLearnerStatusPage(first.token)).contacts).toEqual([
+      { type: firstInput.contactType, value: firstInput.contact },
+    ]);
+    expect((await getLearnerStatusPage(second.token)).contacts).toEqual([
+      { type: secondInput.contactType, value: secondInput.contact },
+    ]);
+  });
+
+  it("shows an unambiguous historical contact and suppresses conflicting options", async () => {
+    const legacy = await submitLearnerRequest(input());
+    if (legacy.status !== "eligible") throw new Error("expected eligible");
+    const request = await requestRow(legacy.requestId);
+    const otherLearner = await createParticipant(db, { role: "learner" });
+    await db
+      .update(participantContacts)
+      .set({ learnerRequestId: null })
+      .where(eq(participantContacts.learnerRequestId, legacy.requestId));
+
+    await expect(
+      db.insert(participantContacts).values({
+        participantId: otherLearner.participantId,
+        learnerRequestId: legacy.requestId,
+        contactType: "telegram",
+        value: "@wrong_owner_test",
+      }),
+    ).rejects.toThrow();
+
+    const confirm = await proposeMatch(legacy.requestId);
+    await confirm();
+    const value = await db
+      .select({
+        type: participantContacts.contactType,
+        value: participantContacts.value,
+      })
+      .from(participantContacts)
+      .where(eq(participantContacts.participantId, request.participantId));
+    expect(value).toHaveLength(1);
+    expect((await getLearnerStatusPage(legacy.token)).contacts).toEqual(value);
+
+    await db.insert(participantContacts).values({
+      participantId: request.participantId,
+      contactType: "telegram",
+      value: "@older_contact_test",
+    });
+    expect((await getLearnerStatusPage(legacy.token)).contacts).toEqual([]);
+  });
 });

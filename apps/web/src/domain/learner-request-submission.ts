@@ -69,11 +69,11 @@ export async function submitLearnerRequest(
         })
       : await createParticipant(tx, { role: "learner", consentGivenAt: now });
 
-    await tx.insert(participantContacts).values({
+    const contact = {
       participantId: learner.participantId,
       contactType: input.contactType,
       value: input.contact,
-    });
+    };
 
     const taskCategory = input.category === "other" ? null : input.category;
     const eventContext = {
@@ -98,8 +98,10 @@ export async function submitLearnerRequest(
             : "deadline_outside_14_days",
     });
 
-    if (input.category === "other")
+    if (input.category === "other") {
+      await tx.insert(participantContacts).values(contact);
       return { status: "ineligible" as const, reason: "category" as const };
+    }
 
     const [createdRequest] = await tx
       .insert(learnerRequests)
@@ -116,6 +118,10 @@ export async function submitLearnerRequest(
         giveBack: input.giveBack || null,
       })
       .returning({ id: learnerRequests.id });
+    await tx.insert(participantContacts).values({
+      ...contact,
+      learnerRequestId: createdRequest.id,
+    });
 
     const submitted = await transitionLearnerRequest(
       tx,

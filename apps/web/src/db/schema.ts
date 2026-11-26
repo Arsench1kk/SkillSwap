@@ -2,6 +2,7 @@ import {
   boolean,
   check,
   customType,
+  foreignKey,
   type AnyPgColumn,
   index,
   integer,
@@ -11,6 +12,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -237,25 +239,6 @@ export const accountParticipants = pgTable(
   ],
 );
 
-// Contact values live in this table only; event rows deliberately have no contact columns.
-export const participantContacts = pgTable(
-  "participant_contacts",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    participantId: text("participant_id")
-      .notNull()
-      .references(() => participants.participantId, { onDelete: "cascade" }),
-    contactType: contactType("contact_type").notNull(),
-    value: text("value").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index("participant_contacts_participant_idx").on(table.participantId),
-  ],
-);
-
 export const learnerRequests = pgTable(
   "learner_requests",
   {
@@ -283,8 +266,40 @@ export const learnerRequests = pgTable(
       .defaultNow(),
   },
   (table) => [
+    unique("learner_requests_id_participant_unique").on(
+      table.id,
+      table.participantId,
+    ),
     index("learner_requests_participant_idx").on(table.participantId),
     index("learner_requests_status_idx").on(table.status),
+  ],
+);
+
+// Contact values live in this table only; event rows deliberately have no contact columns.
+export const participantContacts = pgTable(
+  "participant_contacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    participantId: text("participant_id")
+      .notNull()
+      .references(() => participants.participantId, { onDelete: "cascade" }),
+    learnerRequestId: uuid("learner_request_id"),
+    contactType: contactType("contact_type").notNull(),
+    value: text("value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("participant_contacts_participant_idx").on(table.participantId),
+    unique("participant_contacts_learner_request_unique").on(
+      table.learnerRequestId,
+    ),
+    foreignKey({
+      columns: [table.learnerRequestId, table.participantId],
+      foreignColumns: [learnerRequests.id, learnerRequests.participantId],
+      name: "participant_contacts_learner_request_owner_fk",
+    }).onDelete("cascade"),
   ],
 );
 

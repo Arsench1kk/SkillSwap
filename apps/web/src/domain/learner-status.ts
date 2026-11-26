@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   learnerRequests,
@@ -249,9 +249,9 @@ export async function getLearnerStatusPage(
       : undefined,
   };
 
-  if (!isConfirmed) return data;
+  if (!isConfirmed || state !== "confirmed") return data;
 
-  const [mentorContact, learnerContact] = await Promise.all([
+  const [mentorContact, learnerContacts] = await Promise.all([
     db
       .select({
         type: participantContacts.contactType,
@@ -261,14 +261,33 @@ export async function getLearnerStatusPage(
       .where(eq(participantContacts.participantId, match.mentorParticipantId))
       .limit(1),
     db
-      .select({
+      .selectDistinct({
         type: participantContacts.contactType,
         value: participantContacts.value,
+        requestId: participantContacts.learnerRequestId,
       })
       .from(participantContacts)
-      .where(eq(participantContacts.participantId, request.participantId))
-      .limit(1),
+      .where(
+        and(
+          eq(participantContacts.participantId, request.participantId),
+          or(
+            eq(participantContacts.learnerRequestId, request.id),
+            isNull(participantContacts.learnerRequestId),
+          ),
+        ),
+      )
+      // Prefer the exact match. NULL sorts last, and two unscoped options
+      // are enough to establish that a legacy contact is ambiguous.
+      .orderBy(asc(participantContacts.learnerRequestId))
+      .limit(2),
   ]);
+
+  const candidate = learnerContacts[0];
+  const learnerContact =
+    candidate &&
+    (candidate.requestId === request.id || learnerContacts.length === 1)
+      ? [{ type: candidate.type, value: candidate.value }]
+      : [];
   return { ...data, contacts: [...mentorContact, ...learnerContact] };
 }
 

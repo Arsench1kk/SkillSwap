@@ -92,6 +92,13 @@
       "when": 1795634718246,
       "tag": "0012_operator_access_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795703929678,
+      "tag": "0013_learner_request_contact_snapshot",
+      "breakpoints": true
     }
   ]
 }

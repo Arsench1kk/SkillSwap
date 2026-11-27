@@ -7,6 +7,7 @@ import {
   mentorBriefs,
   participants,
 } from "@/db/schema";
+import type { DatabaseTransaction } from "@/db/types";
 import { containsContactData, recordEvent } from "@/domain/events";
 import { currentDataOrigin } from "@/domain/mentor-brief-page";
 import { verifyPrivateLink } from "@/domain/private-links";
@@ -156,62 +157,7 @@ export async function POST(request: Request) {
       templateVersion: brief.templateVersion,
     };
 
-    if (input.action === "decline") {
-      if (brief.status === "declined") return unavailable(409);
-      const reasonCode = declineReasonCodes.find(
-        (reason) => reason === input.reasonCode,
-      );
-      if (!reasonCode) {
-        return unavailable(400);
-      }
-      const note = input.note?.trim() || null;
-      if (note && containsContactData(note)) return unavailable(400);
-      await db.transaction(async (tx) => {
-        const result = await transitionMentorBrief(tx, brief.id, "declined", {
-          actor: {
-            type: "participant",
-            participantId: brief.mentorParticipantId,
-          },
-          source: "mentor_brief_page",
-          reasonCode: "mentor_declined",
-        });
-        if (!result.ok) throw new Error("state_conflict");
-        await tx
-          .update(matches)
-          .set({ status: "declined" })
-          .where(eq(matches.id, match.id));
-        await recordEvent(tx, eventContext, {
-          eventName: "decline_reason",
-          reasonCode,
-          note,
-        });
-      });
-      return Response.json({ ok: true });
-    }
-
-    if (brief.status === "slot_proposed" && input.action === "withdraw") {
-      // This is a new append-only event; the earlier proposal remains in the log.
-      await db.transaction(async (tx) => {
-        const result = await transitionMentorBrief(tx, brief.id, "withdrawn", {
-          actor: {
-            type: "participant",
-            participantId: brief.mentorParticipantId,
-          },
-          source: "mentor_brief_page",
-          reasonCode: "mentor_withdrew_before_confirmation",
-        });
-        if (!result.ok) throw new Error("state_conflict");
-        await tx
-          .update(matches)
-          .set({ status: "withdrawn" })
-          .where(eq(matches.id, match.id));
-        await recordEvent(tx, eventContext, { eventName: "mentor_withdrew" });
-      });
-      return Response.json({ ok: true });
-    }
-    if (input.action === "withdraw") return unavailable(409);
-
-    const result = await db.transaction(async (tx) => {
+    async function lockResponse(tx: DatabaseTransaction) {
       const [currentBrief] = await tx
         .select({
           status: mentorBriefs.status,
@@ -238,17 +184,96 @@ export async function POST(request: Request) {
         .from(matches)
         .where(eq(matches.id, match.id))
         .for("update");
+      const [mentor] = await tx
+        .select({ id: participants.participantId })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.participantId, brief.mentorParticipantId),
+            eq(participants.role, "mentor"),
+            eq(participants.status, "active"),
+          ),
+        )
+        .for("share");
       const at = new Date();
+      const verified = await verifyPrivateLink(tx, input.token, at);
       if (
+        !mentor ||
+        verified.status !== "valid" ||
         !currentBrief ||
         currentBrief.answerBy <= at ||
         !currentRequest ||
         currentRequest.deadlineAt <= at ||
-        !currentMatch ||
         !["matching", "matched"].includes(currentRequest.status) ||
+        !currentMatch ||
         !["proposed", "declined"].includes(currentMatch.status)
       )
         throw new Error("state_conflict");
+      return { currentBrief, currentRequest, currentMatch, at };
+    }
+
+    if (input.action === "decline") {
+      if (brief.status === "declined") return unavailable(409);
+      const reasonCode = declineReasonCodes.find(
+        (reason) => reason === input.reasonCode,
+      );
+      if (!reasonCode) {
+        return unavailable(400);
+      }
+      const note = input.note?.trim() || null;
+      if (note && containsContactData(note)) return unavailable(400);
+      await db.transaction(async (tx) => {
+        await lockResponse(tx);
+        const result = await transitionMentorBrief(tx, brief.id, "declined", {
+          actor: {
+            type: "participant",
+            participantId: brief.mentorParticipantId,
+          },
+          source: "mentor_brief_page",
+          reasonCode: "mentor_declined",
+        });
+        if (!result.ok) throw new Error("state_conflict");
+        await tx
+          .update(matches)
+          .set({ status: "declined" })
+          .where(eq(matches.id, match.id));
+        await recordEvent(tx, eventContext, {
+          eventName: "decline_reason",
+          reasonCode,
+          note,
+        });
+      });
+      return Response.json({ ok: true });
+    }
+
+    if (brief.status === "slot_proposed" && input.action === "withdraw") {
+      // This is a new append-only event; the earlier proposal remains in the log.
+      await db.transaction(async (tx) => {
+        const { currentBrief } = await lockResponse(tx);
+        if (currentBrief.status !== "slot_proposed")
+          throw new Error("state_conflict");
+        const result = await transitionMentorBrief(tx, brief.id, "withdrawn", {
+          actor: {
+            type: "participant",
+            participantId: brief.mentorParticipantId,
+          },
+          source: "mentor_brief_page",
+          reasonCode: "mentor_withdrew_before_confirmation",
+        });
+        if (!result.ok) throw new Error("state_conflict");
+        await tx
+          .update(matches)
+          .set({ status: "withdrawn" })
+          .where(eq(matches.id, match.id));
+        await recordEvent(tx, eventContext, { eventName: "mentor_withdrew" });
+      });
+      return Response.json({ ok: true });
+    }
+    if (input.action === "withdraw") return unavailable(409);
+
+    const result = await db.transaction(async (tx) => {
+      const { currentBrief, currentRequest, currentMatch, at } =
+        await lockResponse(tx);
 
       let proposedAt: Date | null = null;
       if (input.windowIndex === "other" && input.suggestedAt) {

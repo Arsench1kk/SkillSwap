@@ -137,6 +137,24 @@ export async function revokePrivateLink(
   return Boolean(row);
 }
 
+export async function revokeMentorBriefLinks(
+  database: DatabaseExecutor,
+  briefIds: string[],
+  revokedAt: Date,
+) {
+  await database
+    .update(linkTokens)
+    .set({ revokedAt })
+    .where(
+      and(
+        inArray(linkTokens.subjectId, briefIds),
+        eq(linkTokens.subjectType, "mentor_brief"),
+        eq(linkTokens.purpose, "mentor_brief"),
+        isNull(linkTokens.revokedAt),
+      ),
+    );
+}
+
 /** Revoke links addressed to this participant, preserving the first revocation. */
 export async function revokeParticipantPrivateLinks(
   database: DatabaseExecutor,

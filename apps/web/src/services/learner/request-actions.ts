@@ -49,6 +49,7 @@ type ActionContext = {
   requestId: string;
   dataOrigin: DataOrigin;
   now?: Date;
+  proposal?: { matchId: string; startsAt: string };
 };
 
 // Thrown inside a transaction to roll everything back after a failed check.
@@ -65,7 +66,11 @@ const stateChanged: LearnerActionResult = { ok: false, error: "state_changed" };
  * the learner is still looking at the proposal the operator and mentor
  * agreed on. Throws StateChanged when anything moved.
  */
-async function lockAcceptedProposal(tx: Transaction, requestId: string) {
+async function lockAcceptedProposal(
+  tx: Transaction,
+  requestId: string,
+  expected: ActionContext["proposal"],
+) {
   // Unlocked read only to learn which rows to lock.
   const [candidate] = await tx
     .select({
@@ -118,18 +123,24 @@ async function lockAcceptedProposal(tx: Transaction, requestId: string) {
     .for("update")
     .limit(1);
   // Still the newest match? An operator may have created a newer one meanwhile.
-  const [latest] = await tx
+  const [latest, prior] = await tx
     .select({ id: matches.id })
     .from(matches)
     .where(eq(matches.requestId, requestId))
     .orderBy(desc(matches.createdAt))
-    .limit(1);
+    .limit(2);
 
   if (
     !brief ||
     !request ||
     !match ||
     latest?.id !== match.id ||
+    // Old pages without a proposal selector can act only on a first attempt.
+    (!expected && !!prior) ||
+    (expected &&
+      (expected.matchId !== match.id ||
+        new Date(expected.startsAt).getTime() !==
+          match.proposedSlotAt?.getTime())) ||
     request.status !== "matched" ||
     brief.status !== "slot_proposed" ||
     match.status !== "proposed" ||
@@ -158,10 +169,14 @@ async function run(
 /** L3 "Confirm this time". Exactly one concurrent call can succeed. */
 export function confirmLearnerMatch(
   database: LearnerActionDatabase,
-  { requestId, dataOrigin, now = new Date() }: ActionContext,
+  { requestId, dataOrigin, now = new Date(), proposal }: ActionContext,
 ): Promise<LearnerActionResult> {
   return run(database, async (tx) => {
-    const { brief, request, match } = await lockAcceptedProposal(tx, requestId);
+    const { brief, request, match } = await lockAcceptedProposal(
+      tx,
+      requestId,
+      proposal,
+    );
     if (!match.proposedSlotAt || !match.mentorParticipantId)
       throw new StateChanged();
     const active = await tx
@@ -232,10 +247,14 @@ export function confirmLearnerMatch(
 /** L3 "This time does not work": back to matching, match marked declined. */
 export function declineLearnerMatch(
   database: LearnerActionDatabase,
-  { requestId, dataOrigin, now = new Date() }: ActionContext,
+  { requestId, dataOrigin, now = new Date(), proposal }: ActionContext,
 ): Promise<LearnerActionResult> {
   return run(database, async (tx) => {
-    const { brief, request, match } = await lockAcceptedProposal(tx, requestId);
+    const { brief, request, match } = await lockAcceptedProposal(
+      tx,
+      requestId,
+      proposal,
+    );
 
     const transition = await transitionLearnerRequest(
       tx,

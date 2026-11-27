@@ -180,6 +180,7 @@ async function LearnerStatusContent({
           <LearnerStatusActions
             state={page.state}
             token={token}
+            proposal={page.proposal}
             deadline={page.deadlineInput ?? ""}
             windows={page.windowInputs ?? []}
           />

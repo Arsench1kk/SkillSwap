@@ -1,11 +1,9 @@
-import { and, asc, eq, gt, inArray, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import type { DatabaseExecutor } from "@/db/types";
 import {
   learnerRequests,
-  matches,
-  mentorBriefs,
   mentorProfiles,
   participants,
   skillEvidence,
@@ -13,6 +11,11 @@ import {
 import { currentDataOrigin } from "@/domain/event-context";
 import { studentStatusForMatching } from "@/domain/mentor-student-status";
 import { requireActiveOperator } from "@/domain/operator-access";
+import { expireUnansweredInvitations } from "../mentor/expire-unanswered-invitations";
+import {
+  hasRoomForInvitation,
+  mentorWasNotInvited,
+} from "../mentor/invitation-availability";
 
 export function listUnassignedRequests(
   database: DatabaseExecutor,
@@ -20,6 +23,8 @@ export function listUnassignedRequests(
 ) {
   return database.transaction(async (tx) => {
     await requireActiveOperator(tx, operatorId);
+    const now = new Date();
+    await expireUnansweredInvitations(tx, now);
     return tx
       .select({
         id: learnerRequests.id,
@@ -35,22 +40,11 @@ export function listUnassignedRequests(
       )
       .where(
         and(
-          inArray(learnerRequests.status, ["eligible", "matching"]),
-          gt(learnerRequests.deadlineAt, new Date()),
+          inArray(learnerRequests.status, ["eligible", "matching", "matched"]),
+          gt(learnerRequests.deadlineAt, now),
           eq(participants.status, "active"),
           eq(participants.role, "learner"),
-          notExists(
-            tx
-              .select({ id: matches.id })
-              .from(matches)
-              .where(eq(matches.requestId, learnerRequests.id)),
-          ),
-          notExists(
-            tx
-              .select({ id: mentorBriefs.id })
-              .from(mentorBriefs)
-              .where(eq(mentorBriefs.requestId, learnerRequests.id)),
-          ),
+          hasRoomForInvitation(tx),
         ),
       )
       .orderBy(asc(learnerRequests.createdAt), asc(learnerRequests.id))
@@ -88,12 +82,14 @@ export function listVerifiedSkills(
       .where(
         and(
           eq(learnerRequests.id, z.uuid().parse(requestId)),
-          inArray(learnerRequests.status, ["eligible", "matching"]),
+          inArray(learnerRequests.status, ["eligible", "matching", "matched"]),
           gt(learnerRequests.deadlineAt, new Date()),
           eq(skillEvidence.verificationState, "verified"),
           eq(mentor.status, "active"),
           eq(mentor.role, "mentor"),
           studentStatusForMatching(currentDataOrigin()),
+          hasRoomForInvitation(tx),
+          mentorWasNotInvited(tx, mentor.participantId),
         ),
       )
       .orderBy(asc(skillEvidence.topic), asc(skillEvidence.id))

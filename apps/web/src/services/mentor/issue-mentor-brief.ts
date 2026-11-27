@@ -1,4 +1,4 @@
-import { and, eq, exists, or } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import {
@@ -17,8 +17,15 @@ import {
   operatorIdSchema,
   requireActiveOperator,
 } from "@/domain/operator-access";
-import { createPrivateLink } from "@/domain/private-links";
+import {
+  createPrivateLink,
+  revokeMentorBriefLinks,
+} from "@/domain/private-links";
 import { transitionLearnerRequest } from "@/domain/state-machines";
+import {
+  hasRoomForInvitation,
+  mentorWasNotInvited,
+} from "./invitation-availability";
 
 const inputSchema = z
   .object({
@@ -37,13 +44,21 @@ const inputSchema = z
 export const BRIEF_TEMPLATE_VERSION = "m2-v1";
 const HOURS_48 = 48 * 60 * 60 * 1000;
 
-export async function issueFirstBrief(
+export async function issueMentorBrief(
   database: DatabaseExecutor,
   input: z.input<typeof inputSchema>,
 ) {
   const { operatorId, requestId, skillId, reason } = inputSchema.parse(input);
   return database.transaction(async (tx) => {
     const actorId = await requireActiveOperator(tx, operatorId);
+    // M2 responses and L3 confirmation acquire the brief before the request.
+    const [previousBrief] = await tx
+      .select({ id: mentorBriefs.id })
+      .from(mentorBriefs)
+      .where(eq(mentorBriefs.requestId, requestId))
+      .orderBy(desc(mentorBriefs.sentAt), desc(mentorBriefs.id))
+      .limit(1)
+      .for("update");
     const [request] = await tx
       .select()
       .from(learnerRequests)
@@ -52,7 +67,7 @@ export async function issueFirstBrief(
     const now = new Date();
     if (
       !request ||
-      (request.status !== "matching" && request.status !== "eligible") ||
+      !["eligible", "matching", "matched"].includes(request.status) ||
       request.deadlineAt <= now ||
       !request.preferredWindows.some((window) => {
         const start = new Date(window.startUtc);
@@ -73,29 +88,27 @@ export async function issueFirstBrief(
       .for("share");
     if (!learner) throw new Error("Request unavailable");
 
-    const [prior] = await tx
+    const [available] = await tx
       .select({ id: learnerRequests.id })
       .from(learnerRequests)
-      .where(
-        and(
-          eq(learnerRequests.id, requestId),
-          or(
-            exists(
-              tx
-                .select({ id: matches.id })
-                .from(matches)
-                .where(eq(matches.requestId, requestId)),
-            ),
-            exists(
-              tx
-                .select({ id: mentorBriefs.id })
-                .from(mentorBriefs)
-                .where(eq(mentorBriefs.requestId, requestId)),
-            ),
-          ),
-        ),
-      );
-    if (prior) throw new Error("Request already has a match or invitation");
+      .where(and(eq(learnerRequests.id, requestId), hasRoomForInvitation(tx)));
+    if (!available)
+      throw new Error("Request already has a match or invitation");
+
+    const priorBriefs = await tx
+      .select({ id: mentorBriefs.id })
+      .from(mentorBriefs)
+      .where(eq(mentorBriefs.requestId, requestId))
+      .orderBy(desc(mentorBriefs.sentAt), desc(mentorBriefs.id));
+    if (priorBriefs[0]?.id !== previousBrief?.id)
+      throw new Error("Request already has a match or invitation");
+
+    const [lastPair] = await tx
+      .select({ createdAt: matches.createdAt })
+      .from(matches)
+      .where(eq(matches.requestId, requestId))
+      .orderBy(desc(matches.createdAt))
+      .limit(1);
 
     const mentor = alias(participants, "mentor");
     const dataOrigin = currentDataOrigin();
@@ -118,12 +131,13 @@ export async function issueFirstBrief(
           eq(mentor.role, "mentor"),
           eq(mentor.status, "active"),
           studentStatusForMatching(dataOrigin),
+          mentorWasNotInvited(tx, mentor.participantId, requestId),
         ),
       )
       .for("share");
     if (!skill) throw new Error("Verified mentor skill unavailable");
 
-    if (request.status === "eligible") {
+    if (request.status !== "matching") {
       const transition = await transitionLearnerRequest(
         tx,
         requestId,
@@ -131,20 +145,32 @@ export async function issueFirstBrief(
         {
           actor: { type: "operator", participantId: actorId },
           source: "operator_cli",
-          reasonCode: "mentor_invited",
+          reasonCode: priorBriefs.length ? "mentor_replaced" : "mentor_invited",
           at: now,
         },
       );
       if (!transition.ok) throw new Error("Request unavailable");
     }
+    if (priorBriefs.length)
+      await revokeMentorBriefLinks(
+        tx,
+        priorBriefs.map(({ id }) => id),
+        now,
+      );
+
+    // Keep the latest pair unambiguous even for two writes in the same millisecond.
+    const createdAt = new Date(
+      Math.max(now.getTime(), (lastPair?.createdAt.getTime() ?? 0) + 1),
+    );
     await tx.insert(matches).values({
       requestId,
       mentorParticipantId: skill.id,
       humanDecision: "accepted",
       humanDecisionReason: reason,
+      createdAt,
     });
     const answerBy = new Date(
-      Math.min(now.getTime() + HOURS_48, request.deadlineAt.getTime()),
+      Math.min(createdAt.getTime() + HOURS_48, request.deadlineAt.getTime()),
     );
     const [brief] = await tx
       .insert(mentorBriefs)
@@ -152,7 +178,7 @@ export async function issueFirstBrief(
         requestId,
         mentorParticipantId: skill.id,
         templateVersion: BRIEF_TEMPLATE_VERSION,
-        sentAt: now,
+        sentAt: createdAt,
         answerBy,
       })
       .returning({ id: mentorBriefs.id });
@@ -177,6 +203,6 @@ export async function issueFirstBrief(
         timestampUtc: now,
       },
     );
-    return { link, answerBy };
+    return { link, answerBy, briefId: brief.id };
   });
 }

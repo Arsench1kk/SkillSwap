@@ -20,11 +20,13 @@ export function LearnerStatusActions({
   token,
   deadline,
   windows,
+  proposal,
 }: {
   state: Status;
   token: string;
   deadline: string;
   windows: { start: string; end: string }[];
+  proposal?: { matchId: string; startsAt: string };
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -51,6 +53,7 @@ export function LearnerStatusActions({
         body: JSON.stringify({
           token,
           action,
+          ...(action === "confirm" || action === "decline" ? { proposal } : {}),
           ...(action === "update"
             ? { deadline: nextDeadline, windows: nextWindows }
             : {}),

@@ -137,3 +137,41 @@ test.describe("L1 draft and failure handling", () => {
     expect(calls).toBe(0);
   });
 });
+
+test.describe("L1 language choice survives a reload", () => {
+  test.use({ viewport: { width: 360, height: 780 } });
+
+  test("switching EN to RU keeps the form in Russian after a reload", async ({
+    page,
+  }) => {
+    // No request should leave the page; stub it the same way as above.
+    let calls = 0;
+    await page.route("**/api/request", (route) => {
+      calls += 1;
+      return route.abort();
+    });
+
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const switcher = page.locator(".language-switcher");
+    await switcher.getByRole("button", { name: "EN" }).click();
+    await expect(switcher.getByRole("button", { name: "EN" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await switcher.getByRole("button", { name: "RU" }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "ru");
+
+    await page.goto("/request");
+    await page.reload();
+
+    await expect(page.getByLabel("С чем именно вы застряли?")).toBeVisible();
+    await expect(page.getByLabel("Когда срок сдачи?")).toBeVisible();
+    await expect(page.getByLabel("What exactly are you stuck on?")).toHaveCount(
+      0,
+    );
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("ru");
+    expect(calls).toBe(0);
+  });
+});

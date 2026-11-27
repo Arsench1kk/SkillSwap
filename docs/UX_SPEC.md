@@ -389,6 +389,15 @@ Reachable from every token page. Choose a category, free text optional, submit. 
 
 Plain-language page: what is collected, who sees it, when contact details are shared, how to withdraw. The legal wording is **not** drafted here and needs review before real pilot use.
 
+#### Pilot consent withdrawal (R05, approved 27 November 2026)
+
+The participant contacts the team. An active operator records withdrawal for the
+participant ID in the private CLI. Disable participation for that role and revoke
+links addressed to it. Remove its structured phone and Telegram records and
+mentor work references. Keep the existing history apart from these contact
+records and record `consent_withdrawn`. The operator receives the IDs of open
+requests and meetings for manual follow-up.
+
 ### P10 Operator access (approved 2026-11-26)
 
 The pilot uses a private CLI on a trusted workstation. Arsen or a designated

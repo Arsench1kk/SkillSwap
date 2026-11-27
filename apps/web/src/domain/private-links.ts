@@ -1,9 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { DatabaseExecutor } from "@/db/types";
 import * as schema from "@/db/schema";
-import { linkTokens } from "@/db/schema";
+import {
+  feedback,
+  learnerRequests,
+  linkTokens,
+  mentorBriefs,
+} from "@/db/schema";
 
 type Purpose = (typeof schema.tokenPurpose.enumValues)[number];
 type SubjectType = (typeof schema.tokenSubjectType.enumValues)[number];
@@ -130,4 +135,57 @@ export async function revokePrivateLink(
     .where(eq(linkTokens.id, linkId))
     .returning({ id: linkTokens.id });
   return Boolean(row);
+}
+
+/** Revoke links addressed to this participant, preserving the first revocation. */
+export async function revokeParticipantPrivateLinks(
+  database: DatabaseExecutor,
+  participantId: string,
+  revokedAt: Date,
+) {
+  await database
+    .update(linkTokens)
+    .set({ revokedAt })
+    .where(
+      and(
+        isNull(linkTokens.revokedAt),
+        or(
+          eq(linkTokens.recipientParticipantId, participantId),
+          and(
+            eq(linkTokens.subjectType, "participant"),
+            eq(linkTokens.subjectId, participantId),
+          ),
+          and(
+            eq(linkTokens.subjectType, "learner_request"),
+            inArray(
+              linkTokens.subjectId,
+              database
+                .select({ id: sql<string>`${learnerRequests.id}::text` })
+                .from(learnerRequests)
+                .where(eq(learnerRequests.participantId, participantId)),
+            ),
+          ),
+          and(
+            eq(linkTokens.subjectType, "mentor_brief"),
+            inArray(
+              linkTokens.subjectId,
+              database
+                .select({ id: sql<string>`${mentorBriefs.id}::text` })
+                .from(mentorBriefs)
+                .where(eq(mentorBriefs.mentorParticipantId, participantId)),
+            ),
+          ),
+          and(
+            eq(linkTokens.subjectType, "feedback"),
+            inArray(
+              linkTokens.subjectId,
+              database
+                .select({ id: sql<string>`${feedback.id}::text` })
+                .from(feedback)
+                .where(eq(feedback.participantId, participantId)),
+            ),
+          ),
+        ),
+      ),
+    );
 }

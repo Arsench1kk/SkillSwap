@@ -99,6 +99,13 @@
       "when": 1795703929678,
       "tag": "0013_learner_request_contact_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795792656678,
+      "tag": "0014_participant_consent_withdrawal",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."event_name" ADD VALUE 'consent_withdrawn';

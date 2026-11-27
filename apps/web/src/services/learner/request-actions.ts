@@ -1,7 +1,12 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/db/schema";
-import { learnerRequests, matches, mentorBriefs } from "@/db/schema";
+import {
+  learnerRequests,
+  matches,
+  mentorBriefs,
+  participants,
+} from "@/db/schema";
 import { recordEvent } from "@/domain/events";
 import { ensureScheduledSession } from "../sessions/schedule-session";
 import {
@@ -157,7 +162,22 @@ export function confirmLearnerMatch(
 ): Promise<LearnerActionResult> {
   return run(database, async (tx) => {
     const { brief, request, match } = await lockAcceptedProposal(tx, requestId);
-    if (!match.proposedSlotAt) throw new StateChanged();
+    if (!match.proposedSlotAt || !match.mentorParticipantId)
+      throw new StateChanged();
+    const active = await tx
+      .select({ id: participants.participantId })
+      .from(participants)
+      .where(
+        and(
+          inArray(participants.participantId, [
+            request.participantId,
+            match.mentorParticipantId,
+          ]),
+          eq(participants.status, "active"),
+        ),
+      )
+      .for("share");
+    if (active.length !== 2) throw new StateChanged();
     const actor = {
       type: "participant" as const,
       participantId: request.participantId,

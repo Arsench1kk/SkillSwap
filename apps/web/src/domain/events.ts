@@ -85,6 +85,13 @@ const eventInputSchema = z
         });
       }
     }
+    if (event.eventName === "consent_withdrawn" && event.note != null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["note"],
+        message: "Consent withdrawal events cannot contain notes",
+      });
+    }
     if (event.sourceChannel && !/^[a-zA-Z0-9_-]+$/.test(event.sourceChannel)) {
       ctx.addIssue({
         code: "custom",
@@ -179,6 +186,15 @@ export async function recordEvent(
     participant.role !== "operator"
   ) {
     throw new Error("Operator access requires an operator subject");
+  }
+
+  if (
+    input.eventName === "consent_withdrawn" &&
+    (participant.role === "operator" || !context.actorParticipantId)
+  ) {
+    throw new Error(
+      "Consent withdrawal requires a participant and an operator actor",
+    );
   }
 
   if (context.actorParticipantId) {

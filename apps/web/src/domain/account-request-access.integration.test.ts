@@ -123,7 +123,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
       ]);
       expect(storedRequests).toHaveLength(1);
       expect(storedEvents).toHaveLength(2);
-      expect(contacts).toHaveLength(1);
+      expect(contacts).toEqual([]);
     });
   },
 );

@@ -422,7 +422,7 @@ test.describe("D4 L4 action errors at 360px", () => {
   test("L4 failed cancellation does not claim success and can be retried", async ({
     page,
   }) => {
-    const f = await fixture({ completionState: "scheduled" });
+    const f = await fixture({ completionState: "scheduled", future: true });
     const token = randomBytes(32).toString("base64url");
     await pool.query(
       "INSERT INTO link_tokens(token_hash,purpose,subject_type,subject_id,expires_at) VALUES ($1,'session','participant',$2,now()+interval '1 day')",

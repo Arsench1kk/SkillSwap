@@ -36,6 +36,14 @@ async function SessionContent({
           <section className="public-panel">
             <h1 className="public-title">{messages.requestExpiredTitle}</h1>
             <p className="public-copy">{messages.expiredLinkText}</p>
+            {page.canReport && (
+              <Link
+                className="public-text-link status-report-link"
+                href={`/report/${encodeURIComponent(token)}`}
+              >
+                {messages.sessionReport}
+              </Link>
+            )}
           </section>
         </div>
       </main>
@@ -54,7 +62,9 @@ async function SessionContent({
             {page.startsAt ?? messages.sessionTimePending}
           </p>
           {page.completionState === "cancelled" ? (
-            <p className="privacy-review-note">{messages.sessionCancelled}</p>
+            <p className="privacy-review-note">
+              {messages.requestSessionCancelledTitle}
+            </p>
           ) : (
             <>
               {!page.meetUrl && (
@@ -84,7 +94,7 @@ async function SessionContent({
               </section>
               <SessionActions
                 token={token}
-                state={page.completionState ?? "scheduled"}
+                canCancel={page.canCancel ?? false}
                 meetUrl={page.meetUrl}
               />
             </>

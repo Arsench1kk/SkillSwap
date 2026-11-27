@@ -286,6 +286,21 @@ lookup returns exactly one eligible meeting. If the lookup is ambiguous, the
 operator issues an exact link. The report action remains available from scoped
 meeting pages. Completion, no-show and rating link delivery are separate rules.
 
+#### L4 cancellation and no-show (R07, approved 2026-11-28)
+
+Either participant can use the existing L4 action to cancel before the scheduled
+start. Close the meeting and its request together. Disable the Google Meet
+action. The operator reviews the closed request manually and may ask the learner
+to submit another request if help is still needed.
+
+After the 45-minute slot, an active operator checks attendance and may record
+a no-show through the private CLI if the meeting did not take place. The
+operator records whether the learner, mentor, or both were absent. Opening
+Google Meet does not verify attendance. No-show closes the meeting and request,
+disables Meet, and does not issue a rating link. Use the existing unavailable
+link screen for the closed meeting after a no-show. The scoped link still
+allows reporting while it is valid.
+
 ### L5 Rating
 
 Shown within two hours of the session (A6 E3). Three inputs only:
@@ -422,7 +437,8 @@ Event names come from `docs/DATA_DICTIONARY.md`. The front end sends events thro
 | L3 confirm                        | `match_accepted`                      |                                                       |
 | L4 session starts                 | `session_started`                     |                                                       |
 | Session ends                      | `session_completed`                   | with duration                                         |
-| L4 "cannot make it", no one shows | `no_show`                             | `reason_code` required                                |
+| L4 participant cancels             | `session_cancelled`                   | participant and session template version              |
+| Operator verifies a no-show in L4  | `no_show`                             | absence reason, operator and session template version |
 | L5 usefulness                     | `usefulness_submitted`                |                                                       |
 | L5 trust                          | `trust_submitted`                     |                                                       |
 | X2 report                         | `safety_flag`                         | `reason_code` required                                |

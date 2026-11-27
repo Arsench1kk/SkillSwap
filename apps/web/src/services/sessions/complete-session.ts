@@ -1,12 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import {
-  feedback,
-  learnerRequests,
-  matches,
-  participants,
-  sessions,
-} from "@/db/schema";
+import { feedback, participants, sessions } from "@/db/schema";
 import type { DatabaseExecutor } from "@/db/types";
 import { currentDataOrigin } from "@/domain/event-context";
 import {
@@ -17,6 +11,7 @@ import { recordEvent } from "@/domain/events";
 import { createPrivateLink } from "@/domain/private-links";
 import { ratingWindowClosesAt } from "@/domain/rating-page";
 import { transitionLearnerRequest } from "@/domain/state-machines";
+import { isOpenSession, lockSession } from "./lock-session";
 
 const inputSchema = z
   .object({
@@ -42,43 +37,17 @@ export async function completeSession(
   return database.transaction(async (tx) => {
     const actorId = await requireActiveOperator(tx, operatorId);
 
-    const [reference] = await tx
-      .select({ matchId: matches.id, requestId: matches.requestId })
-      .from(sessions)
-      .innerJoin(matches, eq(sessions.matchId, matches.id))
-      .where(eq(sessions.id, sessionId));
-    if (!reference) throw new Error("Meeting unavailable");
-    // Respect the learner request -> match -> session lock order.
-    const [request] = await tx
-      .select({
-        learner: learnerRequests.participantId,
-        status: learnerRequests.status,
-      })
-      .from(learnerRequests)
-      .where(eq(learnerRequests.id, reference.requestId))
-      .for("update");
-    const [match] = await tx
-      .select()
-      .from(matches)
-      .where(eq(matches.id, reference.matchId))
-      .for("update");
-    const [session] = await tx
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .for("update");
+    const meeting = await lockSession(tx, sessionId);
+    if (!meeting || !meeting.match.mentorParticipantId)
+      throw new Error("Meeting unavailable");
+    const { request, match, session } = meeting;
     if (
-      !request ||
-      !match ||
-      !session ||
-      !match.mentorParticipantId ||
       match.status !== "accepted" ||
       match.humanDecision !== "accepted" ||
       !match.learnerAcceptedAt ||
       !match.mentorAcceptedAt
-    ) {
+    )
       throw new Error("Meeting unavailable");
-    }
 
     if (session.completionState === "completed") {
       if (
@@ -91,16 +60,10 @@ export async function completeSession(
         );
       }
     } else {
-      if (
-        request.status !== "session_scheduled" ||
-        (session.completionState !== "scheduled" &&
-          session.completionState !== "started")
-      ) {
-        throw new Error("Meeting unavailable");
-      }
+      if (!isOpenSession(meeting)) throw new Error("Meeting unavailable");
       const transition = await transitionLearnerRequest(
         tx,
-        reference.requestId,
+        request.id,
         "completed",
         {
           actor: { type: "operator", participantId: actorId },

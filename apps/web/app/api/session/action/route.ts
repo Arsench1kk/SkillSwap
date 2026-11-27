@@ -1,11 +1,7 @@
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
-import { matches, sessions } from "@/db/schema";
-import { recordEvent } from "@/domain/events";
-import { getSessionPage } from "@/domain/session-page";
 import { allowRateLimitedAttempt } from "@/domain/rate-limit";
-import { currentDataOrigin } from "@/domain/mentor-brief-page";
+import { actOnSessionLink } from "@/services/sessions/session-outcomes";
 
 const payloadSchema = z
   .object({
@@ -30,75 +26,14 @@ export async function POST(request: Request) {
       ))
     )
       return Response.json({ error: "rate_limited" }, { status: 429 });
-    const updated = await db.transaction(async (tx) => {
-      const page = await getSessionPage(parsed.data.token, tx);
-      if (
-        page.state !== "ready" ||
-        !page.sessionId ||
-        !page.matchId ||
-        !page.participantId
-      ) {
-        return "unavailable" as const;
-      }
-      const { sessionId, matchId, participantId } = page;
-      // Keep the same lock order as the operator command.
-      const [match] = await tx
-        .select({ status: matches.status })
-        .from(matches)
-        .where(eq(matches.id, matchId))
-        .for("update");
-      if (match?.status !== "accepted") return false;
-      const [session] = await tx
-        .select({ completionState: sessions.completionState })
-        .from(sessions)
-        .where(eq(sessions.id, sessionId))
-        .for("update")
-        .limit(1);
-      if (
-        !session ||
-        !["scheduled", "started"].includes(session.completionState)
-      )
-        return false;
-      if (parsed.data.action === "start") {
-        if (session.completionState === "scheduled") {
-          await tx
-            .update(sessions)
-            .set({ completionState: "started" })
-            .where(eq(sessions.id, sessionId));
-          await recordEvent(
-            tx,
-            {
-              participantId,
-              dataOrigin: currentDataOrigin(),
-              templateVersion: page.templateVersion,
-            },
-            { eventName: "session_started" },
-          );
-        }
-      } else {
-        await tx
-          .update(sessions)
-          .set({ completionState: "cancelled" })
-          .where(eq(sessions.id, sessionId));
-        await tx
-          .update(matches)
-          .set({ status: "withdrawn" })
-          .where(eq(matches.id, matchId));
-        await recordEvent(
-          tx,
-          {
-            participantId,
-            dataOrigin: currentDataOrigin(),
-            templateVersion: page.templateVersion,
-          },
-          { eventName: "session_cancelled" },
-        );
-      }
-      return true;
-    });
+    const updated = await actOnSessionLink(
+      db,
+      parsed.data.token,
+      parsed.data.action,
+    );
     if (updated === "unavailable")
       return Response.json({ error: "link_unavailable" }, { status: 410 });
-    if (!updated)
+    if (updated === "state_changed")
       return Response.json({ error: "state_changed" }, { status: 409 });
     return Response.json({ ok: true });
   } catch {

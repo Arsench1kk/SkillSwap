@@ -20,6 +20,8 @@ import { getReportParticipant } from "@/domain/report-page";
 import { getSessionPage } from "@/domain/session-page";
 import { completeSession } from "./complete-session";
 import { publishSession } from "./publish-session";
+import { actOnSessionLink, recordSessionNoShow } from "./session-outcomes";
+import { cancelLearnerRequest } from "../learner/request-actions";
 
 const meetUrl = "https://meet.google.com/test-meeting";
 const hour = 3_600_000;
@@ -201,6 +203,154 @@ describe.skipIf(!process.env.DATABASE_URL)(
         db.select().from(linkTokens).where(eq(linkTokens.subjectId, old.id)),
       ).resolves.toEqual([]);
     });
+    it("closes the request and meeting together when the mentor cancels", async () => {
+      const { learner, mentor, schedule } = await pair();
+      const operator = await createParticipant(db, { role: "operator" });
+      const meeting = await schedule(
+        "Review the chart",
+        new Date(Date.now() + hour),
+      );
+      const tokens = await publishSession(db, {
+        sessionId: meeting.id,
+        operatorId: operator.participantId,
+        meetUrl,
+      });
+      const [match] = await db
+        .select()
+        .from(matches)
+        .where(eq(matches.id, meeting.matchId));
+      await expect(
+        cancelLearnerRequest(db, {
+          requestId: match.requestId,
+          dataOrigin: "rehearsal",
+        }),
+      ).resolves.toEqual({ ok: false, error: "state_changed" });
+
+      const outcomes = await Promise.all([
+        actOnSessionLink(db, tokens.mentor.token, "cancel"),
+        actOnSessionLink(db, tokens.mentor.token, "cancel"),
+      ]);
+      expect(outcomes).toEqual(["ok", "ok"]);
+      await expect(
+        actOnSessionLink(db, tokens.learner.token, "start"),
+      ).resolves.toBe("state_changed");
+      for (const token of [tokens.learner.token, tokens.mentor.token]) {
+        await expect(getSessionPage(token)).resolves.toMatchObject({
+          state: "ready",
+          completionState: "cancelled",
+          meetUrl: null,
+          canCancel: false,
+        });
+      }
+      await expect(
+        getReportParticipant(tokens.learner.token),
+      ).resolves.toMatchObject({ id: learner.participantId });
+      const [request] = await db
+        .select()
+        .from(learnerRequests)
+        .where(eq(learnerRequests.id, match.requestId));
+      expect(request.status).toBe("cancelled");
+      const [stored] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, meeting.id));
+      expect(stored).toMatchObject({
+        completionState: "cancelled",
+        meetUrl: null,
+      });
+      const log = await db
+        .select()
+        .from(events)
+        .where(eq(events.participantId, mentor.participantId));
+      expect(log).toHaveLength(1);
+      expect(log[0]).toMatchObject({
+        eventName: "session_cancelled",
+        templateVersion: "l4-v1",
+      });
+    });
+
+    it("records verified absence only after the slot and blocks completion and rating", async () => {
+      const { learner, schedule } = await pair();
+      const operator = await createParticipant(db, { role: "operator" });
+      const recent = await schedule(
+        "Still time to attend",
+        new Date(Date.now() - 60_000),
+      );
+      const inProgress = await publishSession(db, {
+        sessionId: recent.id,
+        operatorId: operator.participantId,
+        meetUrl,
+      });
+      await expect(
+        actOnSessionLink(db, inProgress.learner.token, "cancel"),
+      ).resolves.toBe("state_changed");
+      const input = {
+        operatorId: operator.participantId,
+        absent: "mentor" as const,
+      };
+      await expect(
+        recordSessionNoShow(db, { ...input, sessionId: recent.id }),
+      ).rejects.toThrow("Wait until");
+
+      const planned = new Date(Date.now() - hour);
+      const meeting = await schedule("Missed meeting", planned);
+      const tokens = await publishSession(db, {
+        sessionId: meeting.id,
+        operatorId: operator.participantId,
+        meetUrl,
+      });
+      await expect(
+        recordSessionNoShow(db, {
+          ...input,
+          operatorId: "O-0000000000",
+          sessionId: meeting.id,
+        }),
+      ).rejects.toThrow("Active operator required");
+      await expect(
+        actOnSessionLink(db, tokens.learner.token, "start"),
+      ).resolves.toBe("ok");
+      await recordSessionNoShow(db, { ...input, sessionId: meeting.id });
+      await expect(
+        recordSessionNoShow(db, { ...input, sessionId: meeting.id }),
+      ).rejects.toThrow("already marked");
+      await expect(
+        completeSession(db, {
+          sessionId: meeting.id,
+          operatorId: operator.participantId,
+          actualStart: planned,
+          actualEnd: new Date(planned.getTime() + 45 * 60_000),
+        }),
+      ).rejects.toThrow("Meeting unavailable");
+      await expect(getSessionPage(tokens.learner.token)).resolves.toMatchObject(
+        { state: "expired", canReport: true },
+      );
+      await expect(
+        getReportParticipant(tokens.learner.token),
+      ).resolves.toMatchObject({ id: learner.participantId });
+      await expect(
+        db.select().from(feedback).where(eq(feedback.sessionId, meeting.id)),
+      ).resolves.toEqual([]);
+      const [request] = await db
+        .select({ status: learnerRequests.status })
+        .from(learnerRequests)
+        .innerJoin(matches, eq(matches.requestId, learnerRequests.id))
+        .where(eq(matches.id, meeting.matchId));
+      expect(request.status).toBe("no_show");
+      const log = await db
+        .select()
+        .from(events)
+        .where(eq(events.participantId, learner.participantId));
+      expect(
+        log.filter((event) => event.eventName === "no_show"),
+      ).toMatchObject([
+        {
+          reasonCode: "mentor_absent",
+          actor: operator.participantId,
+          templateVersion: "l4-v1",
+        },
+      ]);
+    });
+
     it("records one actual completion and one learner feedback across repeated commands", async () => {
       const { learner, schedule } = await pair();
       const operator = await createParticipant(db, { role: "operator" });

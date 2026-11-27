@@ -276,11 +276,17 @@ export function cancelLearnerRequest(
 ): Promise<LearnerActionResult> {
   return run(database, async (tx) => {
     const [request] = await tx
-      .select({ participantId: learnerRequests.participantId })
+      .select({
+        participantId: learnerRequests.participantId,
+        status: learnerRequests.status,
+      })
       .from(learnerRequests)
       .where(eq(learnerRequests.id, requestId))
+      .for("update")
       .limit(1);
-    if (!request) throw new StateChanged();
+    // Once confirmed, only the L4 action may cancel the meeting and request together.
+    if (!request || request.status === "session_scheduled")
+      throw new StateChanged();
     const transition = await transitionLearnerRequest(
       tx,
       requestId,

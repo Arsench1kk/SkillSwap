@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { learnerRequests, matches, participants, sessions } from "@/db/schema";
 import {
@@ -21,7 +21,21 @@ export type SessionPageData = {
   startsAt?: string | null;
   meetUrl?: string | null;
   completionState?: string;
+  canCancel?: boolean;
+  canReport?: boolean;
 };
+
+export function canCancelSession(session: {
+  startsAt: Date | null;
+  completionState: string;
+}) {
+  return (
+    (session.completionState === "scheduled" ||
+      session.completionState === "started") &&
+    session.startsAt !== null &&
+    session.startsAt.getTime() > Date.now()
+  );
+}
 
 export async function resolveSessionLink(
   link: LinkVerification,
@@ -60,6 +74,7 @@ export async function resolveSessionLink(
       meetUrl: sessions.meetUrl,
       completionState: sessions.completionState,
       task: learnerRequests.taskDescription,
+      requestStatus: learnerRequests.status,
     })
     .from(sessions)
     .innerJoin(matches, eq(matches.id, sessions.matchId))
@@ -79,7 +94,7 @@ export async function resolveSessionLink(
                 eq(matches.status, "accepted"),
                 and(
                   eq(matches.status, "withdrawn"),
-                  eq(sessions.completionState, "cancelled"),
+                  inArray(sessions.completionState, ["cancelled", "no_show"]),
                 ),
               ),
             )
@@ -101,6 +116,13 @@ export async function getSessionPage(
   );
   if (!resolved) return { state: "expired", token };
   const { participant, session } = resolved;
+  if (
+    session.completionState === "no_show" ||
+    session.requestStatus === "no_show" ||
+    (session.requestStatus === "cancelled" &&
+      session.completionState !== "cancelled")
+  )
+    return { state: "expired", token, canReport: true };
   const meet = googleMeetUrl.safeParse(session.meetUrl);
   return {
     state: "ready",
@@ -119,5 +141,6 @@ export async function getSessionPage(
         ? meet.data
         : null,
     completionState: session.completionState,
+    canCancel: canCancelSession(session),
   };
 }

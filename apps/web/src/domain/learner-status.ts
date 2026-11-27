@@ -54,7 +54,7 @@ export function learnerRecoveryState(
   sessionCompletionState?: string | null,
 ): "time_declined" | "mentor_withdrew" | "session_cancelled" | null {
   if (
-    requestStatus === "session_scheduled" &&
+    ["session_scheduled", "cancelled"].includes(requestStatus) &&
     sessionCompletionState === "cancelled"
   )
     return "session_cancelled";
@@ -144,9 +144,9 @@ export async function getLearnerStatusPage(
     .limit(1);
   if (!request) return expired;
 
-  if (request.status === "cancelled") return { state: "cancelled", token };
   if (request.status === "ineligible") return { state: "ineligible", token };
-  if (request.status === "expired") return expired;
+  if (request.status === "expired" || request.status === "no_show")
+    return expired;
 
   const [match] = await db
     .select({
@@ -169,6 +169,15 @@ export async function getLearnerStatusPage(
     .where(eq(matches.requestId, request.id))
     .orderBy(desc(matches.createdAt))
     .limit(1);
+
+  if (request.status === "cancelled")
+    return {
+      state:
+        match?.sessionCompletionState === "cancelled"
+          ? "session_cancelled"
+          : "cancelled",
+      token,
+    };
 
   const { state, isConfirmed, isReadyToConfirm } = deriveLearnerStatusState({
     requestStatus: request.status,

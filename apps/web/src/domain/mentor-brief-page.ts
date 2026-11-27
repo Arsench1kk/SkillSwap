@@ -113,6 +113,7 @@ export async function getMentorBriefPage(
   )
     return expired;
   if (row.requestStatus === "cancelled") return { state: "cancelled", token };
+  if (row.requestStatus === "no_show") return expired;
   const answerBy =
     row.deadlineAt < row.answerBy ? row.deadlineAt : row.answerBy;
   if (row.briefStatus === "expired" || answerBy <= new Date()) return expired;

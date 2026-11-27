@@ -27,6 +27,7 @@ export function listUnassignedRequests(
         task: learnerRequests.taskDescription,
         triedAlready: learnerRequests.triedAlready,
         deadlineAt: learnerRequests.deadlineAt,
+        createdAt: learnerRequests.createdAt,
       })
       .from(learnerRequests)
       .innerJoin(

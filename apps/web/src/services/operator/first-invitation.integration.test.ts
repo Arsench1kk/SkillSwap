@@ -115,7 +115,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
       });
 
       const queue = await listUnassignedRequests(db, input.operatorId);
-      expect(queue.some((row) => row.id === request.id)).toBe(true);
+      const queued = queue.find((row) => row.id === request.id);
+      expect(queued).toBeDefined();
+      // Intake time is shown to the operator so the 60 second check needs no SQL.
+      expect(queued?.createdAt).toBeInstanceOf(Date);
+      expect(queued?.createdAt.getTime()).toBe(request.createdAt.getTime());
       const skills = await listVerifiedSkills(db, input.operatorId, request.id);
       expect(
         skills.filter((skill) => skill.mentorId === mentor.participantId),

@@ -17,11 +17,14 @@ async function main() {
   if (!process.env.DATABASE_URL || !operatorId) throw new Error(usage);
   if (!process.stdout.isTTY) throw new Error("Run from a private terminal.");
   if (command === "queue" && args.length === 0) {
+    // Each row: id, category, task, triedAlready, created and deadline. Both
+    // times are Almaty time, so intake time can be checked without the database.
     const rows = await listUnassignedRequests(db, operatorId);
     console.log(
       JSON.stringify(
-        rows.map(({ deadlineAt, ...row }) => ({
+        rows.map(({ createdAt, deadlineAt, ...row }) => ({
           ...row,
+          created: formatKazakhstanTime(createdAt, "en"),
           deadline: formatKazakhstanTime(deadlineAt, "en"),
         })),
         null,

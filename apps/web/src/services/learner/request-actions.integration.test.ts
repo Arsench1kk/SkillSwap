@@ -14,7 +14,10 @@ import {
   ensureScheduledSession,
   SESSION_TEMPLATE_VERSION,
 } from "../sessions/schedule-session";
-import { createParticipant } from "@/domain/participants";
+import {
+  createParticipant,
+  withdrawParticipantConsent,
+} from "@/domain/participants";
 import {
   toKazakhstanDateInput,
   toKazakhstanDateTimeInput,
@@ -154,6 +157,16 @@ describe.skipIf(!databaseAvailable)("learner request actions", () => {
   });
 
   describe("confirm", () => {
+    it("does not schedule a meeting after the mentor withdraws consent", async () => {
+      const fixture = await createFixture({ withProposal: true });
+      await withdrawParticipantConsent(db, fixture.mentor.participantId);
+      await expect(confirmLearnerMatch(db, context(fixture))).resolves.toEqual({
+        ok: false,
+        error: "state_changed",
+      });
+      expect((await snapshot(fixture)).sessionRows).toHaveLength(0);
+    });
+
     it("confirms once: request scheduled, match accepted, brief confirmed, one event", async () => {
       const fixture = await createFixture({ withProposal: true });
       await expect(confirmLearnerMatch(db, context(fixture))).resolves.toEqual({

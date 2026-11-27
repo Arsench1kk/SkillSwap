@@ -88,7 +88,8 @@ export async function publishSession(
           inArray(participants.participantId, [match.learner, match.mentor]),
           eq(participants.status, "active"),
         ),
-      );
+      )
+      .for("share");
     if (
       !recipients.some((p) => p.id === match.learner && p.role === "learner") ||
       !recipients.some((p) => p.id === match.mentor && p.role === "mentor")

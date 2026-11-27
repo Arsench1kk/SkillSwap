@@ -1,8 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/db/schema";
-import { participants, skillEvidence } from "@/db/schema";
+import { participantContacts, participants, skillEvidence } from "@/db/schema";
+
+import { revokeParticipantPrivateLinks } from "./private-links";
 
 export type ParticipantRole =
   (typeof schema.participantRole.enumValues)[number];
@@ -53,15 +55,26 @@ export async function withdrawParticipantConsent(
   return database.transaction(async (tx) => {
     const [updated] = await tx
       .update(participants)
-      .set({ consentWithdrawnAt: withdrawnAt, status: "withdrawn" })
+      .set({
+        status: "withdrawn",
+        consentWithdrawnAt: sql`case when ${participants.consentGivenAt} is not null
+          then coalesce(${participants.consentWithdrawnAt}, ${withdrawnAt.toISOString()}::timestamptz) end`,
+      })
       .where(eq(participants.participantId, participantId))
       .returning();
-    if (updated?.role === "mentor") {
+    if (!updated) return null;
+    if (updated.role !== "operator") {
+      await tx
+        .delete(participantContacts)
+        .where(eq(participantContacts.participantId, participantId));
+      await revokeParticipantPrivateLinks(tx, participantId, withdrawnAt);
+    }
+    if (updated.role === "mentor") {
       await tx
         .update(skillEvidence)
         .set({ proofReference: null })
         .where(eq(skillEvidence.mentorParticipantId, participantId));
     }
-    return updated ?? null;
+    return updated;
   });
 }

@@ -108,6 +108,18 @@ npx tsx scripts/operator/publish-session.ts <operator-id> <session-uuid> <google
 npm run db:export-events -- <operator-id>
 ```
 
+## Consent withdrawal
+
+After receiving a withdrawal request, an active operator records it from a
+private terminal with `DATABASE_URL` and `SKILLSWAP_DATA_ORIGIN` set:
+
+```sh
+npx tsx scripts/operator/withdraw-consent.ts <operator-id> <participant-id>
+```
+
+Use the affected learner or mentor ID. Process the open request and session
+IDs in the result. Retrying preserves the original timestamp and audit event.
+
 ## Skill proof retention
 
 The **Skill proof retention** GitHub workflow runs hourly at minute 17 when

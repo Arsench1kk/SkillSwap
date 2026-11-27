@@ -8,6 +8,7 @@ import {
 } from "@/db/schema";
 import { recordEvent } from "@/domain/events";
 import { verifyPrivateLink } from "@/domain/private-links";
+import { resolveMentorBriefGate } from "@/domain/mentor-brief-state";
 import { transitionMentorBrief } from "@/domain/state-machines";
 import { formatKazakhstanTime } from "@/domain/time";
 
@@ -105,17 +106,21 @@ export async function getMentorBriefPage(
     .where(eq(mentorBriefs.id, verified.subjectId))
     .limit(1);
 
-  if (
-    !row ||
-    row.briefId !== verified.subjectId ||
-    row.mentorRole !== "mentor" ||
-    row.mentorStatus !== "active"
-  )
-    return expired;
-  if (row.requestStatus === "cancelled") return { state: "cancelled", token };
+  if (!row || row.briefId !== verified.subjectId) return expired;
   const answerBy =
     row.deadlineAt < row.answerBy ? row.deadlineAt : row.answerBy;
-  if (row.briefStatus === "expired" || answerBy <= new Date()) return expired;
+  const gate = resolveMentorBriefGate({ ...row, answerBy }, new Date());
+  if (gate === "expired") return expired;
+  if (gate === "cancelled") return { state: "cancelled", token };
+  if (gate === "confirmed")
+    return {
+      state: "confirmed",
+      token,
+      proposedSlot: row.proposedSlotAt
+        ? formatKazakhstanTime(row.proposedSlotAt, "en")
+        : null,
+      confirmedTask: safeBriefText(row.taskDescription),
+    };
 
   if (row.briefStatus === "invited") {
     const result = await transitionMentorBrief(db, row.briefId, "viewed", {
@@ -140,19 +145,6 @@ export async function getMentorBriefPage(
     return { state: "declined", token };
   }
   if (row.briefStatus === "withdrawn") return { state: "withdrawn", token };
-  if (
-    row.briefStatus === "confirmed" ||
-    row.matchStatus === "accepted" ||
-    row.requestStatus === "session_scheduled"
-  )
-    return {
-      state: "confirmed",
-      token,
-      proposedSlot: row.proposedSlotAt
-        ? formatKazakhstanTime(row.proposedSlotAt, "en")
-        : null,
-      confirmedTask: safeBriefText(row.taskDescription),
-    };
 
   const windows = row.preferredWindows.map((window, index) => {
     const start = new Date(window.startUtc);

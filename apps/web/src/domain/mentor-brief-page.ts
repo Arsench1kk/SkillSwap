@@ -6,7 +6,6 @@ import {
   mentorBriefs,
   participants,
 } from "@/db/schema";
-import { recordEvent } from "@/domain/events";
 import { verifyPrivateLink } from "@/domain/private-links";
 import { resolveMentorBriefGate } from "@/domain/mentor-brief-state";
 import { transitionMentorBrief } from "@/domain/state-machines";
@@ -77,7 +76,6 @@ export async function getMentorBriefPage(
       mentorParticipantId: mentorBriefs.mentorParticipantId,
       mentorRole: participants.role,
       mentorStatus: participants.status,
-      templateVersion: mentorBriefs.templateVersion,
       answerBy: mentorBriefs.answerBy,
       briefStatus: mentorBriefs.status,
       requestStatus: learnerRequests.status,
@@ -123,22 +121,19 @@ export async function getMentorBriefPage(
     };
 
   if (row.briefStatus === "invited") {
-    const result = await transitionMentorBrief(db, row.briefId, "viewed", {
-      actor: { type: "participant", participantId: row.mentorParticipantId },
-      source: "mentor_brief_page",
-      reasonCode: "mentor_opened_brief",
-    });
-    if (result.ok) {
-      await recordEvent(
-        db,
-        {
-          participantId: row.mentorParticipantId,
-          dataOrigin: currentDataOrigin(),
-          templateVersion: row.templateVersion,
-        },
-        { eventName: "mentor_viewed" },
-      );
-    }
+    // D1-H002: status, audit row and mentor_viewed commit in one transaction,
+    // with the template version read from the brief row.
+    await transitionMentorBrief(
+      db,
+      row.briefId,
+      "viewed",
+      {
+        actor: { type: "participant", participantId: row.mentorParticipantId },
+        source: "mentor_brief_page",
+        reasonCode: "mentor_opened_brief",
+      },
+      { input: { eventName: "mentor_viewed" } },
+    );
   }
 
   if (["no_reply"].includes(row.briefStatus)) {

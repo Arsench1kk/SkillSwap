@@ -226,7 +226,7 @@ export const translations = {
     prototypeSwitchDemoAccount: "Войти в свой аккаунт",
     prototypeReturnToSignIn: "Завершить сеанс на этом устройстве.",
     prototypeCreateAccountHint: "Один аккаунт для обеих ролей.",
-    requestAreaLabel: "С какой задачей нужна помощь?",
+    requestAreaLabel: "С чем вам нужна помощь?",
     requestAreaStem:
       "STEM — математика, естественные науки или программирование",
     requestAreaCreative:

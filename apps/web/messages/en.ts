@@ -75,7 +75,7 @@ export const messages = {
   requestIntro:
     "For university students in Almaty and Astana. Tasks due within 14 days.",
   // TODO(team): Rewrite L1 placeholder copy in the team's own voice before pilot.
-  requestAreaLabel: "What kind of task is it?",
+  requestAreaLabel: "What do you need help with?",
   // TODO(team): Rewrite L1 placeholder copy in the team's own voice before pilot.
   requestAreaStem: "STEM — math, science, or programming",
   // TODO(team): Rewrite L1 placeholder copy in the team's own voice before pilot.

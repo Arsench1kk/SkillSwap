@@ -7,7 +7,7 @@ import {
   mentorProfiles,
   skillEvidence,
 } from "@/db/schema";
-import { issueFirstBrief } from "../services/mentor/issue-first-brief";
+import { issueMentorBrief } from "../services/mentor/issue-mentor-brief";
 import { listVerifiedSkills } from "../services/operator/matching-queue";
 import { listPendingStudentVerifications } from "../services/operator/verification-queue";
 import { setMentorStudentStatus } from "./mentor-student-status";
@@ -82,7 +82,7 @@ describe.skipIf(!process.env.DATABASE_URL)("mentor student status", () => {
 
     vi.stubEnv("SKILLSWAP_DATA_ORIGIN", "real_pilot");
     expect(await candidateIsListed()).toBe(false);
-    await expect(issueFirstBrief(db, invite)).rejects.toThrow(
+    await expect(issueMentorBrief(db, invite)).rejects.toThrow(
       "Verified mentor skill unavailable",
     );
     const pending = await listPendingStudentVerifications(db, input.operatorId);
@@ -102,7 +102,7 @@ describe.skipIf(!process.env.DATABASE_URL)("mentor student status", () => {
       setMentorStudentStatus(db, { ...input, state: "verified" }),
     ).resolves.toBeNull();
     expect(await candidateIsListed()).toBe(true);
-    await expect(issueFirstBrief(db, invite)).resolves.toHaveProperty("link");
+    await expect(issueMentorBrief(db, invite)).resolves.toHaveProperty("link");
 
     const audit = await db
       .select({

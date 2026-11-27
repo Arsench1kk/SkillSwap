@@ -83,6 +83,15 @@ and database, so build output, dev output and test artifacts do not collide.
 
 The rehearsal seed contains only synthetic rows and sets `data_origin = rehearsal` on every event it creates. Rehearsal data must never be analyzed as real demand.
 
+For manual matching and replacement, use
+`npx tsx scripts/operator/match-request.ts queue <operator-ID>` from the
+private terminal with `DATABASE_URL` and `SKILLSWAP_DATA_ORIGIN`. Each run
+processes up to 50 overdue unanswered invitations and lists available requests.
+Run `skills <operator-ID> <request-UUID>` on the same script to find eligible
+skills, then `invite <operator-ID> <request-UUID> <skill-UUID> <reason>` with
+`NEXT_PUBLIC_APP_URL` set. Send the new invitation manually. Confirmed
+meetings follow the meeting outcomes process below.
+
 A participant can cancel through their meeting link before the scheduled
 start. The request and meeting close together and Meet is removed. Review
 the 50 most recently created cancelled or missed meetings from the trusted

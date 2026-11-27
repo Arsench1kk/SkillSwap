@@ -36,6 +36,7 @@ export type LearnerStatusPageData = {
   windows?: string[];
   windowInputs?: { start: string; end: string }[];
   proposedTime?: string;
+  proposal?: { matchId: string; startsAt: string };
   mentor?: {
     displayName: string | null;
     year: number | null;
@@ -208,6 +209,10 @@ export async function getLearnerStatusPage(
       start: toKazakhstanDateTimeInput(new Date(window.startUtc)),
       end: toKazakhstanDateTimeInput(new Date(window.endUtc)),
     })),
+    proposal:
+      isReadyToConfirm && match?.proposedSlotAt
+        ? { matchId: match.id, startsAt: match.proposedSlotAt.toISOString() }
+        : undefined,
     proposedTime: match?.proposedSlotAt
       ? formatKazakhstanTime(match.proposedSlotAt, "en")
       : undefined,

@@ -388,6 +388,19 @@ The request remains in matching until the mentor proposes a valid time. Use the
 existing structured brief and existing L2/L3 states. Subsequent assignment after
 a decline or expiry follows the separate rematching rules.
 
+#### M2 manual replacement (R07/R11, approved 2026-11-28)
+
+When the operator opens the matching queue, record overdue invitations with no
+mentor response as `mentor_no_reply` once. An existing proposed time counts as
+a response. For a decline, a withdrawal before confirmation, or a recorded
+no-reply, the operator can select another verified mentor for the same request
+before its deadline. Choose a mentor who has not already received this request,
+revoke the prior brief links, and send the new link manually. Use the same
+reply deadline rules as for the first invitation.
+
+The learner returns to the existing L2 waiting state. Only the proposal shown
+to the learner can be confirmed or declined in L3.
+
 ### M3 Mentor confirmation
 
 What was sent, what happens next, who to contact, and how to withdraw. No upsell, no gamification.

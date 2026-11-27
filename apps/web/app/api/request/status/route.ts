@@ -11,12 +11,16 @@ import {
   declineLearnerMatch,
   updateLearnerRequest,
   type LearnerActionResult,
-} from "@/services/learner/request-actions";
+} from "../../../../src/services/learner/request-actions";
 
 const actionSchema = z
   .object({
     token: z.string().min(1).max(128),
     action: z.enum(["cancel", "confirm", "decline", "update"]),
+    proposal: z
+      .object({ matchId: z.uuid(), startsAt: z.iso.datetime() })
+      .strict()
+      .optional(),
     deadline: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -76,7 +80,11 @@ export async function POST(request: Request) {
     if (!requestRow)
       return NextResponse.json({ error: "link_unavailable" }, { status: 410 });
 
-    const context = { requestId: requestRow.id, dataOrigin };
+    const context = {
+      requestId: requestRow.id,
+      dataOrigin,
+      proposal: parsed.data.proposal,
+    };
     switch (parsed.data.action) {
       case "update":
         if (!parsed.data.deadline || !parsed.data.windows)

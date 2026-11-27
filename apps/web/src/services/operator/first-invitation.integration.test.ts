@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { POST as respondToBrief } from "../../../app/api/brief/action/route";
+import { POST as respondToProposal } from "../../../app/api/request/status/route";
 import { db, pool } from "@/db/client";
 import {
   events,
@@ -16,7 +17,7 @@ import { getMentorBriefPage } from "@/domain/mentor-brief-page";
 import { createParticipant } from "@/domain/participants";
 import { createPrivateLink, verifyPrivateLink } from "@/domain/private-links";
 import { confirmLearnerMatch } from "../learner/request-actions";
-import { issueFirstBrief } from "../mentor/issue-first-brief";
+import { issueMentorBrief } from "../mentor/issue-mentor-brief";
 import { listUnassignedRequests, listVerifiedSkills } from "./matching-queue";
 
 const HOUR = 3_600_000;
@@ -91,6 +92,37 @@ async function createFixture(deadlineHours: number) {
   };
 }
 
+async function anotherSkill(operatorId: string) {
+  const mentor = await createParticipant(db, { role: "mentor" });
+  await db.insert(mentorProfiles).values({
+    participantId: mentor.participantId,
+    displayName: "Other Mentor Test",
+  });
+  const [skill] = await db
+    .insert(skillEvidence)
+    .values({
+      mentorParticipantId: mentor.participantId,
+      category: "STEM",
+      topic: "Spreadsheets",
+      proofType: "fixture",
+      verificationState: "verified",
+      verifiedBy: operatorId,
+      verifiedAt: new Date(),
+    })
+    .returning();
+  return skill.id;
+}
+
+async function setPastAnswerBy(briefId: string) {
+  await db
+    .update(mentorBriefs)
+    .set({
+      sentAt: new Date(Date.now() - 49 * HOUR),
+      answerBy: new Date(Date.now() - HOUR),
+    })
+    .where(eq(mentorBriefs.id, briefId));
+}
+
 function propose(token: string) {
   return respondToBrief(
     new Request("http://localhost/api/brief/action", {
@@ -130,12 +162,12 @@ describe.skipIf(!process.env.DATABASE_URL)(
         "Active operator required",
       );
       await expect(
-        issueFirstBrief(db, { ...input, skillId: pending.id }),
+        issueMentorBrief(db, { ...input, skillId: pending.id }),
       ).rejects.toThrow("Verified mentor skill unavailable");
 
       const attempts = await Promise.allSettled([
-        issueFirstBrief(db, input),
-        issueFirstBrief(db, input),
+        issueMentorBrief(db, input),
+        issueMentorBrief(db, input),
       ]);
       const issued = attempts.flatMap((attempt) =>
         attempt.status === "fulfilled" ? [attempt.value] : [],
@@ -192,9 +224,138 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(storedSessions).toEqual([{ startsAt: slot }]);
     });
 
+    it("expires an unanswered invitation once and leaves a proposed time alone", async () => {
+      const { input, request, mentor } = await createFixture(24);
+      const responded = await createFixture(24);
+      const unanswered = await issueMentorBrief(db, input);
+      const proposed = await issueMentorBrief(db, responded.input);
+      expect((await propose(proposed.link.token)).status).toBe(200);
+      await setPastAnswerBy(unanswered.briefId);
+      await setPastAnswerBy(proposed.briefId);
+
+      const [first, second] = await Promise.all([
+        listUnassignedRequests(db, input.operatorId),
+        listUnassignedRequests(db, input.operatorId),
+      ]);
+      const ids = [...first, ...second].map((row) => row.id);
+      expect(ids).toContain(request.id);
+      expect(ids).not.toContain(responded.request.id);
+      const [oldBrief] = await db
+        .select()
+        .from(mentorBriefs)
+        .where(eq(mentorBriefs.id, unanswered.briefId));
+      expect(oldBrief.status).toBe("no_reply");
+      const [proposal] = await db
+        .select()
+        .from(mentorBriefs)
+        .where(eq(mentorBriefs.id, proposed.briefId));
+      expect(proposal.status).toBe("slot_proposed");
+      const log = await db
+        .select()
+        .from(events)
+        .where(
+          and(
+            eq(events.participantId, mentor.participantId),
+            eq(events.eventName, "mentor_no_reply"),
+          ),
+        );
+      expect(log).toMatchObject([
+        { templateVersion: "m2-v1", missingReason: "no_reply" },
+      ]);
+      await expect(
+        verifyPrivateLink(db, unanswered.link.token),
+      ).resolves.toEqual({
+        status: "revoked",
+      });
+      const other = await anotherSkill(input.operatorId);
+      const replacement = await issueMentorBrief(db, {
+        ...input,
+        skillId: other,
+      });
+      expect(replacement.briefId).not.toBe(unanswered.briefId);
+    });
+
+    it.each(["decline", "withdraw"] as const)(
+      "replaces a %s with another verified mentor and rejects stale learner actions",
+      async (action) => {
+        const { input, request } = await createFixture(24);
+        const statusLink = await createPrivateLink(db, {
+          purpose: "learner_status",
+          subjectType: "learner_request",
+          subjectId: request.id,
+          expiresAt: request.deadlineAt,
+        });
+        const first = await issueMentorBrief(db, input);
+        expect((await propose(first.link.token)).status).toBe(200);
+        const old = await getLearnerStatusPage(statusLink.token);
+        expect(old.proposal).toBeDefined();
+        const response = await respondToBrief(
+          new Request("http://localhost/api/brief/action", {
+            method: "POST",
+            body: JSON.stringify({
+              action,
+              token: first.link.token,
+              reasonCode: "not_my_skill",
+            }),
+          }),
+        );
+        expect(response.status).toBe(200);
+        expect(
+          (await listUnassignedRequests(db, input.operatorId)).some(
+            (row) => row.id === request.id,
+          ),
+        ).toBe(true);
+        expect(
+          (await listVerifiedSkills(db, input.operatorId, request.id)).some(
+            (row) => row.skillId === input.skillId,
+          ),
+        ).toBe(false);
+        await expect(issueMentorBrief(db, input)).rejects.toThrow(
+          "Verified mentor skill unavailable",
+        );
+        const next = {
+          ...input,
+          skillId: await anotherSkill(input.operatorId),
+        };
+        const attempts = await Promise.allSettled([
+          issueMentorBrief(db, next),
+          issueMentorBrief(db, next),
+        ]);
+        const issued = attempts.flatMap((attempt) =>
+          attempt.status === "fulfilled" ? [attempt.value] : [],
+        );
+        expect(issued).toHaveLength(1);
+        expect((await propose(first.link.token)).status).toBe(410);
+        expect((await propose(issued[0].link.token)).status).toBe(200);
+        const current = await getLearnerStatusPage(statusLink.token);
+        expect(current.proposal?.matchId).not.toBe(old.proposal?.matchId);
+
+        const confirm = (proposal?: typeof current.proposal) =>
+          respondToProposal(
+            new Request("http://localhost/api/request/status", {
+              method: "POST",
+              body: JSON.stringify({
+                action: "confirm",
+                token: statusLink.token,
+                proposal,
+              }),
+            }),
+          );
+        expect((await confirm(old.proposal)).status).toBe(409);
+        expect((await confirm()).status).toBe(409);
+        expect((await confirm(current.proposal)).status).toBe(200);
+        const stored = await db
+          .select({ matchId: sessions.matchId })
+          .from(sessions)
+          .innerJoin(matches, eq(matches.id, sessions.matchId))
+          .where(eq(matches.requestId, request.id));
+        expect(stored).toEqual([{ matchId: current.proposal?.matchId }]);
+      },
+    );
+
     it("caps a long deadline at 48 hours and respects a subsequently shortened deadline", async () => {
       const { input, request } = await createFixture(72);
-      const { link, answerBy } = await issueFirstBrief(db, input);
+      const { link, answerBy } = await issueMentorBrief(db, input);
       const [brief] = await db
         .select({ sentAt: mentorBriefs.sentAt })
         .from(mentorBriefs)

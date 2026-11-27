@@ -83,6 +83,21 @@ and database, so build output, dev output and test artifacts do not collide.
 
 The rehearsal seed contains only synthetic rows and sets `data_origin = rehearsal` on every event it creates. Rehearsal data must never be analyzed as real demand.
 
+A participant can cancel through their meeting link before the scheduled
+start. The request and meeting close together and Meet is removed. Review
+the 50 most recently created cancelled or missed meetings from the trusted
+operator terminal, with the same `DATABASE_URL` and `SKILLSWAP_DATA_ORIGIN`:
+
+```sh
+npx tsx scripts/operator/session-outcomes.ts <operator-ID> --list
+npx tsx scripts/operator/session-outcomes.ts <operator-ID> <session-UUID> <learner|mentor|both>
+```
+
+Use the second command once the 45-minute slot has ended and you have verified
+that the meeting did not happen. Give the absent role or roles. The outcome
+closes the request and meeting without issuing a rating link. Handle any new
+request for help manually.
+
 Schedule `npm run db:expire-feedback` as a recurring server-side job so unanswered L5 fields are marked `no_reply` after the two-hour rating window. The deployment cadence is a team decision; opening the private rating link does not run expiry processing.
 
 ## Operator access

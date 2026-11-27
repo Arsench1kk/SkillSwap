@@ -56,6 +56,7 @@ export async function publishSession(
       .where(
         and(
           eq(matches.id, reference.matchId),
+          eq(learnerRequests.status, "session_scheduled"),
           eq(matches.status, "accepted"),
           eq(matches.humanDecision, "accepted"),
           isNotNull(matches.learnerAcceptedAt),

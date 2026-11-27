@@ -14,6 +14,7 @@ type FeedbackOptions = {
   unblocked?: number;
   trust?: number;
   expired?: boolean;
+  future?: boolean;
   completionState?: "completed" | "scheduled";
 };
 async function fixture(options: FeedbackOptions = {}) {
@@ -44,12 +45,13 @@ async function fixture(options: FeedbackOptions = {}) {
       [matchId, requestId, mentor],
     );
     await client.query(
-      "INSERT INTO sessions(id,match_id,template_version,starts_at,ends_at,completion_state) VALUES ($1,$2,'d4-browser-v1',now()-interval '4 hours',now()-($3::int * interval '1 minute'),$4)",
+      "INSERT INTO sessions(id,match_id,template_version,starts_at,ends_at,completion_state) VALUES ($1,$2,'d4-browser-v1',now()+($5::int * interval '1 minute'),CASE WHEN $5::int > 0 THEN NULL ELSE now()-($3::int * interval '1 minute') END,$4)",
       [
         sessionId,
         matchId,
         options.expired ? 180 : 15,
         options.completionState ?? "completed",
+        options.future ? 120 : -240,
       ],
     );
     await client.query(
@@ -264,7 +266,7 @@ test.describe("D4 L4 existing actions at 360px", () => {
       page,
       request,
     }) => {
-      const f = await fixture({ completionState: "scheduled" });
+      const f = await fixture({ completionState: "scheduled", future: true });
       const token = randomBytes(32).toString("base64url");
       await pool.query(
         "INSERT INTO link_tokens(token_hash,purpose,subject_type,subject_id,expires_at) VALUES ($1,'session','participant',$2,now()+interval '1 day')",
@@ -420,7 +422,7 @@ test.describe("D4 L4 action errors at 360px", () => {
   test("L4 failed cancellation does not claim success and can be retried", async ({
     page,
   }) => {
-    const f = await fixture({ completionState: "scheduled" });
+    const f = await fixture({ completionState: "scheduled", future: true });
     const token = randomBytes(32).toString("base64url");
     await pool.query(
       "INSERT INTO link_tokens(token_hash,purpose,subject_type,subject_id,expires_at) VALUES ($1,'session','participant',$2,now()+interval '1 day')",

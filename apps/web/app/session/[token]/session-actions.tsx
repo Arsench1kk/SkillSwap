@@ -5,16 +5,16 @@ import { messages } from "@/messages/en";
 
 export function SessionActions({
   token,
-  state,
+  canCancel,
   meetUrl,
 }: {
   token: string;
-  state: string;
+  canCancel: boolean;
   meetUrl?: string | null;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [cancelled, setCancelled] = useState(state === "cancelled");
+  const [cancelled, setCancelled] = useState(false);
   async function start() {
     setError("");
     try {
@@ -69,14 +69,16 @@ export function SessionActions({
           {error}
         </p>
       )}
-      <button
-        className="public-button public-button-secondary"
-        type="button"
-        disabled={busy}
-        onClick={cancel}
-      >
-        {busy ? messages.requestWorking : messages.sessionCannotAttend}
-      </button>
+      {canCancel && (
+        <button
+          className="public-button public-button-secondary"
+          type="button"
+          disabled={busy}
+          onClick={cancel}
+        >
+          {busy ? messages.requestWorking : messages.sessionCannotAttend}
+        </button>
+      )}
     </div>
   );
 }

@@ -118,6 +118,7 @@ function assertRequestActorCanTransition(
   if (actor.type === "system") {
     if (
       ["completed", "no_show", "expired"].includes(to) ||
+      (from === "session_scheduled" && to === "cancelled") ||
       (from === "submitted" && ["eligible", "ineligible"].includes(to)) ||
       (from === "matching" && to === "matched")
     )

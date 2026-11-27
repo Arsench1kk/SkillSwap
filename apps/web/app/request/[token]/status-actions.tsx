@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { messages } from "@/messages/en";
+import { useTranslations } from "@/src/i18n/provider";
 
 type Status =
   | "expired"
@@ -26,6 +26,7 @@ export function LearnerStatusActions({
   deadline: string;
   windows: { start: string; end: string }[];
 }) {
+  const t = useTranslations();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [nextDeadline, setNextDeadline] = useState(deadline);
@@ -59,7 +60,7 @@ export function LearnerStatusActions({
       if (!response.ok) throw new Error("request_failed");
       window.location.reload();
     } catch {
-      setError(messages.requestSubmitUnavailable);
+      setError(t("requestSubmitUnavailable"));
       setBusy(false);
     }
   }
@@ -79,7 +80,7 @@ export function LearnerStatusActions({
             disabled={busy}
             onClick={() => submit("confirm")}
           >
-            {busy ? messages.requestWorking : messages.requestConfirmSlot}
+            {busy ? t("requestWorking") : t("requestConfirmSlot")}
           </button>
           <button
             className="public-button public-button-secondary"
@@ -87,20 +88,20 @@ export function LearnerStatusActions({
             disabled={busy}
             onClick={() => submit("decline")}
           >
-            {messages.requestDeclineSlot}
+            {t("requestDeclineSlot")}
           </button>
         </>
       ) : (
         <>
           {state === "no_match" && (
-            <p className="public-copy">{messages.requestKeepWaiting}</p>
+            <p className="public-copy">{t("requestKeepWaiting")}</p>
           )}
           {["waiting", "time_declined", "mentor_withdrew"].includes(state) && (
             <details className="status-edit">
-              <summary>{messages.requestEditTitle}</summary>
+              <summary>{t("requestEditTitle")}</summary>
               <div className="request-field">
                 <label htmlFor="status-deadline">
-                  {messages.requestDeadlineLabel}
+                  {t("requestDeadlineLabel")}
                 </label>
                 <input
                   id="status-deadline"
@@ -113,7 +114,7 @@ export function LearnerStatusActions({
               {nextWindows.map((window, index) => (
                 <div className="request-window-grid" key={index}>
                   <label htmlFor={`status-start-${index}`}>
-                    {messages.requestWindowStart} {index + 1}
+                    {t("requestWindowStart")} {index + 1}
                   </label>
                   <input
                     id={`status-start-${index}`}
@@ -131,7 +132,7 @@ export function LearnerStatusActions({
                     required
                   />
                   <label htmlFor={`status-end-${index}`}>
-                    {messages.requestWindowEnd} {index + 1}
+                    {t("requestWindowEnd")} {index + 1}
                   </label>
                   <input
                     id={`status-end-${index}`}
@@ -156,7 +157,7 @@ export function LearnerStatusActions({
                 disabled={busy}
                 onClick={() => submit("update")}
               >
-                {messages.requestSaveChanges}
+                {t("requestSaveChanges")}
               </button>
             </details>
           )}
@@ -166,7 +167,7 @@ export function LearnerStatusActions({
             disabled={busy}
             onClick={() => submit("cancel")}
           >
-            {busy ? messages.requestWorking : messages.requestCancel}
+            {busy ? t("requestWorking") : t("requestCancel")}
           </button>
         </>
       )}

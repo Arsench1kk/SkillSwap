@@ -32,10 +32,16 @@ export type LearnerStatusPageData = {
   token: string;
   task?: string;
   deadline?: string;
+  /** UTC ISO value so a client view can format `deadline` in the chosen language. */
+  deadlineAt?: string;
   deadlineInput?: string;
   windows?: string[];
+  /** UTC ISO start of each window, in the same order as `windows`. */
+  windowStartsAt?: string[];
   windowInputs?: { start: string; end: string }[];
   proposedTime?: string;
+  /** UTC ISO value of `proposedTime`. */
+  proposedTimeAt?: string;
   mentor?: {
     displayName: string | null;
     year: number | null;
@@ -191,9 +197,13 @@ export async function getLearnerStatusPage(
     token,
     task: request.taskDescription,
     deadline: formatKazakhstanTime(request.deadlineAt, "en"),
+    deadlineAt: request.deadlineAt.toISOString(),
     deadlineInput: toKazakhstanDateInput(request.deadlineAt),
     windows: request.preferredWindows.map((window) =>
       formatKazakhstanTime(new Date(window.startUtc), "en"),
+    ),
+    windowStartsAt: request.preferredWindows.map((window) =>
+      new Date(window.startUtc).toISOString(),
     ),
     windowInputs: request.preferredWindows.map((window) => ({
       start: toKazakhstanDateTimeInput(new Date(window.startUtc)),
@@ -202,6 +212,7 @@ export async function getLearnerStatusPage(
     proposedTime: match?.proposedSlotAt
       ? formatKazakhstanTime(match.proposedSlotAt, "en")
       : undefined,
+    proposedTimeAt: match?.proposedSlotAt?.toISOString(),
   };
 
   if (!match?.mentorParticipantId || (!isReadyToConfirm && !isConfirmed)) {

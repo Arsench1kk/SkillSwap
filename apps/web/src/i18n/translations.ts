@@ -274,6 +274,68 @@ export const translations = {
       "Команда может не работать с этой темой. Свяжитесь с ней по каналу, где вы нашли SkillSwap.",
     requestNetworkError:
       "Не удалось отправить запрос. Черновик сохранён. Проверьте соединение и попробуйте ещё раз.",
+    requestTitle: "Расскажите, с чем вы застряли",
+    requestIntro:
+      "Для студентов вузов Алматы и Астаны. Срок сдачи задачи не позже чем через 14 дней.",
+    requestExpiredTitle: "Эта ссылка больше не работает.",
+    expiredLinkText:
+      "Свяжитесь с командой через канал, по которому вы получили эту ссылку.",
+    requestWaitingTitle: "Запрос получен",
+    requestWaitingText:
+      "Человек из нашей команды проверит ваш запрос, а затем обратится к студенту, который знает эту тему. Мы ответим в течение 24 часов.",
+    requestNoMatchTitle: "Мы всё ещё ищем",
+    requestNoMatchText:
+      "За 24 часа мы не нашли подходящего наставника. Вы можете подождать ещё или отменить запрос.",
+    requestMatchedTitle: "Мы нашли наставника",
+    requestMatchedText:
+      "Посмотрите данные наставника и предложенное время. Контакты откроются только после того, как вы оба подтвердите встречу.",
+    requestTimeDeclinedTitle: "Это время не подошло",
+    requestTimeDeclinedText:
+      "Мы продолжим искать другое время или другого наставника. Ниже можно обновить срок сдачи и удобное время.",
+    requestMentorWithdrewTitle: "Наставник больше не может встретиться",
+    requestMentorWithdrewText:
+      "Мы продолжим искать другого наставника. Ниже можно обновить срок сдачи и удобное время.",
+    requestSessionCancelledTitle: "Эта встреча отменена",
+    requestSessionCancelledText:
+      "Встреча не состоится. Если нужна помощь, свяжитесь с командой через канал, по которому вы получили эту ссылку.",
+    requestMatchAcceptedTitle: "Время подтверждено",
+    requestMatchAcceptedText:
+      "Вы оба подтвердили встречу. Команда передаст подробности через ваши контакты.",
+    requestCancelledTitle: "Запрос отменён",
+    requestCancelledText:
+      "Спасибо, что сообщили. Больше ничего делать не нужно.",
+    requestIneligibleTitle: "Сейчас мы не можем помочь с этим запросом",
+    requestIneligibleStatus:
+      "Этот запрос не подходит по теме или сроку, с которыми мы сейчас работаем.",
+    requestStatusTitle: "Ваш запрос",
+    requestTask: "Задача",
+    requestDeadline: "Срок сдачи",
+    requestAvailability: "Указанное вами время",
+    requestMentorTitle: "Наставник-студент",
+    requestMentorName: "Имя или инициалы",
+    requestMentorYear: "Курс",
+    requestMentorSkill: "Подтверждённый навык",
+    requestMentorProofType: "Тип подтверждения",
+    requestMentorProof: "Подтверждение проверено командой",
+    requestMentorExperience: "Опыт с похожими задачами",
+    requestProposedTime: "Предложенное время",
+    requestContactDetailsTitle: "Контакты",
+    requestConfirmedMessage: "Время подтверждено. Контакты указаны ниже.",
+    requestContactTelegram: "Имя пользователя в Telegram",
+    requestContactPhone: "Номер телефона",
+    requestYourContact: "Ваш контакт",
+    requestMentorContact: "Контакт наставника",
+    requestReportProblem: "Сообщить о проблеме",
+    requestSubmitUnavailable:
+      "Не удалось подтвердить время. Ваш запрос сохранён. Попробуйте ещё раз.",
+    requestWorking: "Подтверждаем…",
+    requestConfirmSlot: "Подтвердить это время",
+    requestDeclineSlot: "Это время не подходит",
+    requestKeepWaiting:
+      "Запрос может оставаться открытым, пока мы продолжаем поиск.",
+    requestEditTitle: "Обновить срок сдачи и удобное время",
+    requestSaveChanges: "Сохранить изменения",
+    requestCancel: "Отменить запрос",
     prototypeNavHome: "Главная",
     prototypeNavExplore: "Найти наставника",
     prototypeNavRequests: "Мои запросы",
